@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Homepage{% endblock %}
+
+{% block content %}
+    {% if firstname and lastname %}
+        <div class="welcome">
+            <h1>Welcome, {{firstname}} {{lastname}}</h1>
+        </div>
+        
+    {% else %}
+        <p>Please log in to access this page.</p>
+    {% endif %}
+{% endblock %}
