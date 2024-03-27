@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Prayer{% endblock %}
+
+{% block content %}
+    <h1>Add Prayer</h1>
+    <form action="/add_prayer" class="web-form" method="POST">
+        <label for="title">Prayer Title:</label>
+        <input type="text" id="title" name="title" required required maxlength="100"><br>
+
+        <label for="description">Prayer Contents:</label>
+        <input type="text" id="description" name="description" required><br>
+
+        <input type="submit" value="Add Prayer">
+    </form>
+{% endblock %}

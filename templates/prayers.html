@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Prayers{% endblock %}
+
+{% block content %}
+    <h1>Prayers</h1>
+    <u1>
+        {% for prayer in prayers %}
+            <li>
+                <h2>{{ prayer.title }}</h2>
+                <p>{{ prayer.description }}</p>
+                <p>Answered: {% if prayer.answered %}Yes{% else %}No{% endif %}</p>
+                <p>Archived: {% if prayer.archived %}Yes{% else %}No{% endif %}</p>
+            </li>
+        {% endfor %}
+    </u1>
+{% endblock %}
