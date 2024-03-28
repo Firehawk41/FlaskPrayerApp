@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, flash
+from flask import Flask, render_template, request, session, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from datetime import datetime, timezone
@@ -39,25 +39,28 @@ class Prayer(db.Model):
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
 
-@app.route('/add_prayer', methods=['GET','POST'])
+@app.route('/add_prayer', methods=['POST'])
 def add_prayer():
     if request.method == 'POST':
-        title = request.form.get('title').strip()
-        description = request.form.get('description').strip()
-        user_id = session['user_id']
+        # Extract data from the form submission
+        print(request.form.get('title'))
+        print(request.form.get('description'))
+        title = request.form.get('title')
+        description = request.form.get('description')
+        
+        if not title or not description:
+            return jsonify({'error': 'Title and description are required'}), 400
 
-        new_prayer = Prayer(title=title, description=description, user_id=user_id)
+        # Create new Prayer object
+        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
+        
+        # Add new prayer to database and save changes
         db.session.add(new_prayer)
         db.session.commit()
-        flash('Prayer added successfully', 'success')
-        return redirect(url_for('index'))
-    else:
-    
-        if 'user_id' not in session:
-            flash("Please log in to add a prayer", "error")
-            return redirect(url_for('login'))
-    
-    return render_template('add_prayer.html')
+        
+        return jsonify({'message': 'Prayer added successfully'}), 200
+
+    return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
     
 
 @app.route('/prayers')

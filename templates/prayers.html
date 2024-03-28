@@ -14,6 +14,18 @@
             </tr>
         </thead>
         <tbody>
+            <tr>
+                <td colspan="3">
+                    <button onclick="toggleAddPrayerForm()">Add Prayer</button>
+                </td>
+            </tr>
+            <!-- Form for adding a new prayer -->
+            <tr id="addPrayerForm" style="display: none;">
+                <td><input type="text" id="newPrayerTitle" name="newPrayerTitle"></td>
+                <td><textarea id="newPrayerDescription" name="newPrayerDescription"></textarea></td>
+                <td><button type="button" onclick="addPrayer()">Submit</button></td>
+            </tr>
+
             {% for prayer in prayers %}
             <tr>
                 <td>{{ prayer.title }}</td>
@@ -23,5 +35,46 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <script>
+        function toggleAddPrayerForm() {
+            var formRow = document.getElementById('addPrayerForm');
+            formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
+        }
+        function addPrayer(event) {
+            //Prevent the default form submission behavior
+            event.preventDefault();
+
+            var title = document.getElementById('newPrayerTitle').value;
+            var description = document.getElementById('newPrayerDescription').value;
+
+            // Create a new FormData object to send the form data
+            var formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+
+            //Log the values of title and description to the console
+            console.log('Title:', title);
+            console.log('Description:', description);
+
+            // Send a POST request to the server using AJAX
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/add_prayer', true);
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    window.location.reload();
+                } else {
+                    console.error('Failed to add prayer. Status: ' + xhr.status);
+                }
+            };
+            
+            xhr.onerror = function () {
+                console.error('Failed to send request.');
+            };
+
+            xhr.send(formData);
+        }
+    </script>
 
 {% endblock %}
