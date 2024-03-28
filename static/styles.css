@@ -57,3 +57,68 @@ input[type="submit"]:hover {
 .login-signup-btn:hover {
     background-color: #45A049;
 }
+
+.prayer-table {
+    width:100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.prayer-table th,
+.prayer-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.prayer-table th {
+    background-color: #f2F2F2;
+}
+
+.prayer-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Navbar styles */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100%;
+    background-color: #333;
+    color: #fff;
+}
+
+.navbar-brand {
+    padding: 20px;
+    font-weight: bold;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+nav ul li {
+    padding: 10px 0;
+}
+
+nav ul li a {
+    display: block;
+    padding: 10px 20px;
+    color: #fff;
+    text-decoration: none;
+}
+
+nav ul li a:hover {
+    background-color: #555;
+}
+
+/* Content area */
+
+.content {
+    margin-left: 220px;
+    padding: 20px;
+}

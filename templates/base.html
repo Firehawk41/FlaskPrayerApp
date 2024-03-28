@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <header>
+    <!--<header>
         <h1>Christian Reflections - A Prayer App</h1>
-    </header>
+    </header>-->
     <nav>
         {% if session.logged_in %}
             <form action="/logout" method="GET">
@@ -21,9 +21,20 @@
             <a href="/signup" class="login-signup-btn">Sign Up</a>    
         {% endif %}
     </nav>
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+    <div class="navbar">
+        <div class="navbar-brand">Christian Reflections - A Prayer App</div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
+                <li>Account Settings</li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
     <footer>
 
     </footer>
