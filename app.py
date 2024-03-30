@@ -20,6 +20,12 @@ current_utc_time = datetime.now(timezone.utc)
 
 db = SQLAlchemy(app)
 
+# Define the many-to-many association between prayers and tags
+prayer_tags = db.Table('prayer_tags',
+    db.Column('prayer_id', db.Integer, db.ForeignKey('prayer.id'), primary_key=True),
+    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True))
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstname = db.Column(db.String(100), nullable=False)
@@ -38,18 +44,26 @@ class Prayer(db.Model):
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
+    tags = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
+        backref=db.backref('prayers', lazy=True))
+
+class Tag(db.Model):
+    __tablename__ = 'tag'
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(50), nullable = False)
 
 @app.route('/add_prayer', methods=['POST'])
 def add_prayer():
     if request.method == 'POST':
         # Extract data from the form submission
-        print(request.form.get('title'))
-        print(request.form.get('description'))
         title = request.form.get('title')
         description = request.form.get('description')
+        tag = request.form.get('tag')
         
-        if not title or not description:
-            return jsonify({'error': 'Title and description are required'}), 400
+
+
+        if not title or not description or not tag:
+            return jsonify({'error': 'Title, description and tag are required'}), 400
 
         # Create new Prayer object
         new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
@@ -58,7 +72,7 @@ def add_prayer():
         db.session.add(new_prayer)
         db.session.commit()
         
-        return jsonify({'message': 'Prayer added successfully'}), 200
+        return jsonify({'message': 'Prayer added successfully'}), 201
 
     return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
     
@@ -69,9 +83,10 @@ def view_prayers():
         flash("Please log in to add a prayer", "error")
         return redirect(url_for('login'))
     
+    categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
     user_id = session['user_id']
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
-    return render_template('prayers.html', prayers = user_prayers)
+    return render_template('prayers.html', prayers = user_prayers, categories=categories)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -103,6 +118,18 @@ def logout():
     session.pop('firstname', None)
     session.pop('lastname', None)
     return redirect(url_for('index'))
+
+@app.route('/account_settings')
+def account_settings():
+    
+    return render_template('account_settings.html')
+
+@app.route('/update_account', methods=['POST'])
+def update_account():
+    if request.method == ['POST']:
+
+
+        return redirect(url_for('account_settings'))
 
 @app.route('/', methods=['GET'])
 def index():
