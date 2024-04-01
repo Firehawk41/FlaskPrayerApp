@@ -44,7 +44,7 @@
                 <td>
                     <!-- Button to mark prayer as answered -->
                     <form action="{% if prayer.answered %}{{ url_for('mark_pending', prayer_id=prayer.id) }}{% else %}{{ url_for('mark_answered', prayer_id=prayer.id) }}{% endif %}" method="POST" style="display:inline;">
-                        <button type="submit">{% if prayer.answered %}Mark as Answered{% else %}Mark as <Pending>% endif %</Pending></button>
+                        <button type="submit">{% if prayer.answered %}Mark as Pending{% else %}Mark as Answered{% endif %}</button>
                     </form>
                     <!-- Button to mark prayer as archived -->
                     <form action="{{ url_for('mark_archived', prayer_id=prayer.id) }}" method="POST" style="display: inline;">
@@ -67,15 +67,18 @@
 
             var title = document.getElementById('newPrayerTitle').value;
             var description = document.getElementById('newPrayerDescription').value;
+            var tag = document.querySelector('select[name="category"]').value;
 
             // Create a new FormData object to send the form data
             var formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
+            formData.append('tag', tag);
 
             //Log the values of title and description to the console
             console.log('Title:', title);
             console.log('Description:', description);
+            console.log('Tag:' + tag);
 
             // Send a POST request to the server using AJAX
             var xhr = new XMLHttpRequest();

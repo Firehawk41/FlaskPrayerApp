@@ -44,11 +44,11 @@ class Prayer(db.Model):
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
-    tags = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
+    tags = db.relationship('Tags', secondary=prayer_tags, lazy='subquery',
         backref=db.backref('prayers', lazy=True))
 
 class Tag(db.Model):
-    __tablename__ = 'tag'
+    __tablename__ = 'Tags'
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(50), nullable = False)
 
@@ -68,11 +68,19 @@ def add_prayer():
         # Create new Prayer object
         new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
         
+        # Add tag to the prayer
+        new_tag = Tag.query.filter_by(name=tag).first()
+        if not new_tag:
+            new_tag = Tag(name=tag)
+            db.session.add(new_tag)
+            db.session.commit()
+        new_prayer.tags.append(New_tag)
+
         # Add new prayer to database and save changes
         db.session.add(new_prayer)
         db.session.commit()
         
-        return jsonify({'message': 'Prayer added successfully'}), 201
+        return jsonify({'message': 'Prayer added successfully'}), 200
 
     return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
     
@@ -87,6 +95,45 @@ def view_prayers():
     user_id = session['user_id']
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
     return render_template('prayers.html', prayers = user_prayers, categories=categories)
+
+@app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
+def mark_answered(prayer_id):
+    # Get the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+
+    # Mark the prayer as answered
+    prayer.answered = True
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('view_prayers'))
+
+@app.route('/mark_pending/<int:prayer_id>', methods=['POST'])
+def mark_pending(prayer_id):
+    # Get the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+
+    # Mark the prayer as answered
+    prayer.answered = False
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('view_prayers'))
+
+@app.route('/mark_archived/<int:prayer_id>', methods=['POST'])
+def mark_archived(prayer_id):
+    # Get the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+
+    # Mark the prayer as answered
+    prayer.archived = True
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('view_prayers'))
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -173,6 +220,6 @@ def signup():
 
 
 if __name__ == '__main__':
-    # with app.app_context():
-        # db.create_all()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
