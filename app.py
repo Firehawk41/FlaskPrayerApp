@@ -44,11 +44,11 @@ class Prayer(db.Model):
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
-    tags = db.relationship('Tags', secondary=prayer_tags, lazy='subquery',
+    tag = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
         backref=db.backref('prayers', lazy=True))
 
 class Tag(db.Model):
-    __tablename__ = 'Tags'
+    __tablename__ = 'tag'
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(50), nullable = False)
 
@@ -58,23 +58,28 @@ def add_prayer():
         # Extract data from the form submission
         title = request.form.get('title')
         description = request.form.get('description')
-        tag = request.form.get('tag')
+        tag_name = request.form.get('tag')
         
+        print(title)
+        print(description)
+        print(tag_name)
 
-
-        if not title or not description or not tag:
+        if not title or not description or not tag_name:
             return jsonify({'error': 'Title, description and tag are required'}), 400
 
         # Create new Prayer object
         new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
         
         # Add tag to the prayer
-        new_tag = Tag.query.filter_by(name=tag).first()
-        if not new_tag:
-            new_tag = Tag(name=tag)
+        existing_tag = Tag.query.filter_by(name=tag_name).first()
+        if not existing_tag:
+            new_tag = Tag(name=tag_name)
             db.session.add(new_tag)
             db.session.commit()
-        new_prayer.tags.append(New_tag)
+        else:
+            new_tag = existing_tag
+
+        new_prayer.tag.append(new_tag)
 
         # Add new prayer to database and save changes
         db.session.add(new_prayer)

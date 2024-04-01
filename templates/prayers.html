@@ -26,7 +26,7 @@
                 <td><input type="text" id="newPrayerTitle" name="newPrayerTitle"></td>
                 <td><textarea id="newPrayerDescription" name="newPrayerDescription"></textarea></td>
                 <td>
-                    <select name="category">
+                    <select name="tag">
                         {% for category in categories %}
                             <option value="{{ category }}">{{ category }}</option>
                         {% endfor %}
@@ -39,7 +39,11 @@
             <tr>
                 <td>{{ prayer.title }}</td>
                 <td>{{ prayer.description }}</td>
-                <td>{{ prayer.tag }}</td>
+                <td>
+                    {% for tag in prayer.tag %} 
+                        {{ tag.name }}
+                    {% endfor %}
+                </td>
                 <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
                 <td>
                     <!-- Button to mark prayer as answered -->
@@ -67,7 +71,7 @@
 
             var title = document.getElementById('newPrayerTitle').value;
             var description = document.getElementById('newPrayerDescription').value;
-            var tag = document.querySelector('select[name="category"]').value;
+            var tag = document.querySelector('select[name="tag"]').value;
 
             // Create a new FormData object to send the form data
             var formData = new FormData();
