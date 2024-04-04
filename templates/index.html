@@ -7,7 +7,39 @@
         <div class="welcome">
             <h1>Welcome, {{firstname}} {{lastname}}</h1>
         </div>
-        
+        <h1>Daily Prayers</h1>
+    
+        <table class="prayer-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Tag</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+
+
+                {% for prayer in prayers %}
+                    
+                    <tr>
+                        <td>{{ prayer.title }}</td>
+                        <td>{{ prayer.description }}</td>
+                        <td>
+                            {% for tag in prayer.tag %} 
+                                {{ tag.name }}
+                            {% endfor %}
+                        </td>
+                        <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
+
+                    
+                    </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
         <p>Please log in to access this page.</p>
     {% endif %}

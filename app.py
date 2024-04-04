@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import bcrypt
 
@@ -42,15 +42,29 @@ class Prayer(db.Model):
     archived = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=current_utc_time)
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
+    answered_at = db.Column(db.DateTime)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
     tag = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
         backref=db.backref('prayers', lazy=True))
+    
+    def move_to_schedule(self):
+        # Calculate the date 1 days from now
+        next_pray_date = current_utc_time + timedelta(days=1)
+        self.next_pray_date = next_pray_date
+        db.session.commit()
 
 class Tag(db.Model):
     __tablename__ = 'tag'
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(50), nullable = False)
+
+class PrayerHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    prayer_id = db.Column(db.Integer, db.ForeignKey('prayer.id'), nullable=False)
+    date_prayed = db.Column(db.DateTime, default=current_utc_time)
+
+    prayer = db.relationship('Prayer', backref=db.backref('history'))
 
 @app.route('/add_prayer', methods=['POST'])
 def add_prayer():
@@ -108,6 +122,9 @@ def mark_answered(prayer_id):
 
     # Mark the prayer as answered
     prayer.answered = True
+
+    # Set the answered date
+    prayer.answered_at = current_utc_time
 
     # Commit the changes to the database
     db.session.commit()
@@ -188,7 +205,29 @@ def index():
     if 'logged_in' in session and session['logged_in']:
         firstname = session.get('firstname')
         lastname = session.get('lastname')
-        return render_template('index.html', firstname=firstname, lastname=lastname)
+
+        user_id = session['user_id']
+        user_prayers = Prayer.query.filter_by(user_id=user_id).all()
+
+
+
+        # Filter prayers
+        filtered_prayers = []
+        for prayer in user_prayers:
+            within_seven_days = False
+            if prayer.answered_at:
+                print("Prayer answered at: " + str(prayer.answered_at) + ".")
+                print("current_utc_time: " + str(current_utc_time) + ".")
+                print("type of answered_at: " + str(type(prayer.answered_at)))
+                print("type of current_utc_time: " + str(type(current_utc_time)))
+
+                answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
+                time_difference = current_utc_time - answered_at
+                within_seven_days = time_difference <= timedelta(days=7)
+            if not prayer.archived and (not prayer.answered or within_seven_days):
+                filtered_prayers.append(prayer)
+
+        return render_template('index.html', firstname=firstname, lastname=lastname, prayers = filtered_prayers)
     else:
         return render_template('login.html')
     
