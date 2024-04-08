@@ -157,6 +157,19 @@ def mark_archived(prayer_id):
 
     return redirect(url_for('view_prayers'))
 
+@app.route('/mark_prayed/<int:prayer_id>', methods=['POST'])
+def mark_prayed(prayer_id):
+    # Get the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+
+    # Mark the prayer as prayed
+    prayer_history = PrayerHistory(prayer_id=prayer.id, date_prayed=current_utc_time)
+    db.session.add(prayer_history)
+    db.session.commit()
+
+    return redirect(url_for('index'))
+
+
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('email')
@@ -213,8 +226,14 @@ def index():
 
         # Filter prayers
         filtered_prayers = []
+        prayed_today_prayers = []
         for prayer in user_prayers:
             within_seven_days = False
+            if prayer.history:
+                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
+                if last_prayed_date == current_utc_time.date():
+                    prayed_today_prayers.append(prayer)
+            
             if prayer.answered_at:
                 print("Prayer answered at: " + str(prayer.answered_at) + ".")
                 print("current_utc_time: " + str(current_utc_time) + ".")
@@ -225,9 +244,10 @@ def index():
                 time_difference = current_utc_time - answered_at
                 within_seven_days = time_difference <= timedelta(days=7)
             if not prayer.archived and (not prayer.answered or within_seven_days):
-                filtered_prayers.append(prayer)
+                    filtered_prayers.append(prayer)
 
-        return render_template('index.html', firstname=firstname, lastname=lastname, prayers = filtered_prayers)
+
+        return render_template('index.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
     else:
         return render_template('login.html')
     
