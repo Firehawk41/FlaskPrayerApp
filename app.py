@@ -12,8 +12,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
-print(os.environ.get('SECRET_KEY'))
-print(os.environ.get('SQLALCHEMY_DATABASE_URI'))
 
 # Get currecnt UTC time
 current_utc_time = datetime.now(timezone.utc)
@@ -234,16 +232,12 @@ def index():
                 if last_prayed_date == current_utc_time.date():
                     prayed_today_prayers.append(prayer)
             
-            if prayer.answered_at:
-                print("Prayer answered at: " + str(prayer.answered_at) + ".")
-                print("current_utc_time: " + str(current_utc_time) + ".")
-                print("type of answered_at: " + str(type(prayer.answered_at)))
-                print("type of current_utc_time: " + str(type(current_utc_time)))
+            elif prayer.answered_at:
 
                 answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
                 time_difference = current_utc_time - answered_at
                 within_seven_days = time_difference <= timedelta(days=7)
-            if not prayer.archived and (not prayer.answered or within_seven_days):
+                if not prayer.archived and (not prayer.answered or within_seven_days):
                     filtered_prayers.append(prayer)
 
 
