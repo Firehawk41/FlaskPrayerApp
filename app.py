@@ -18,10 +18,8 @@ current_utc_time = datetime.now(timezone.utc)
 
 db = SQLAlchemy(app)
 
-# Define the many-to-many association between prayers and tags
-prayer_tags = db.Table('prayer_tags',
-    db.Column('prayer_id', db.Integer, db.ForeignKey('prayer.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True))
+# Define possible prayer tags
+prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
 
 
 class User(db.Model):
@@ -41,10 +39,10 @@ class Prayer(db.Model):
     created_at = db.Column(db.DateTime, default=current_utc_time)
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
     answered_at = db.Column(db.DateTime)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), nullable=False)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
-    tag = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
-        backref=db.backref('prayers', lazy=True))
+    tag =  db.relationship('Tag', backref=db.backref('prayers', lazy=True))
     
     def move_to_schedule(self):
         # Calculate the date 1 days from now
@@ -53,9 +51,8 @@ class Prayer(db.Model):
         db.session.commit()
 
 class Tag(db.Model):
-    __tablename__ = 'tag'
     id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(50), nullable = False)
+    name = db.Column(db.String(50), nullable = False, unique=True)
 
 class PrayerHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -79,19 +76,20 @@ def add_prayer():
         if not title or not description or not tag_name:
             return jsonify({'error': 'Title, description and tag are required'}), 400
 
-        # Create new Prayer object
-        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
+
         
         # Add tag to the prayer
         existing_tag = Tag.query.filter_by(name=tag_name).first()
         if not existing_tag:
+            # If the tag doesn't exist, create a new one
             new_tag = Tag(name=tag_name)
             db.session.add(new_tag)
             db.session.commit()
         else:
             new_tag = existing_tag
 
-        new_prayer.tag.append(new_tag)
+        # Create new Prayer object
+        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'], tag=new_tag)
 
         # Add new prayer to database and save changes
         db.session.add(new_prayer)
@@ -101,6 +99,42 @@ def add_prayer():
 
     return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
     
+@app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
+def edit_prayer(prayer_id):
+    # Retrieve the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+    tag_name = request.form.get('tag')
+
+    if request.method == 'POST':
+        # Update prayer details based on form submission
+        prayer.title = request.form['title']
+        prayer.description = request.form['description']
+
+        # Add tag to the prayer
+        existing_tag = Tag.query.filter_by(name=tag_name).first()
+        if not existing_tag:
+            new_tag = Tag(name=tag_name)
+            db.session.add(new_tag)
+            db.session.commit()
+        else:
+            new_tag = existing_tag
+
+        prayer.tag = new_tag
+
+        if request.form['status'] == "answered":
+            prayer.answered = True
+        else:
+            prayer.answered = False
+        #prayer.answered = request.form['answered']
+
+        # Commit changes to the database
+        db.session.commit()
+
+        flash('Prayer updated successfully', 'success')
+        return redirect(url_for('view_prayers'))
+    
+    # Render the edit prayer form
+    return render_template('edit_prayer.html', prayer=prayer, categories=prayer_categories)
 
 @app.route('/prayers')
 def view_prayers():
@@ -111,7 +145,7 @@ def view_prayers():
     categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
     user_id = session['user_id']
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
-    return render_template('prayers.html', prayers = user_prayers, categories=categories)
+    return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories)
 
 @app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
 def mark_answered(prayer_id):
@@ -167,6 +201,14 @@ def mark_prayed(prayer_id):
 
     return redirect(url_for('index'))
 
+@app.route('/delete_prayer/<int:prayer_id>', methods=['POST'])
+def delete_prayer(prayer_id):
+    prayer = Prayer.query.get_or_404(prayer_id)
+    db.session.delete(prayer)
+    db.session.commit()
+    flash('Item deleted.')
+    return redirect(url_for('index'))
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -220,26 +262,32 @@ def index():
         user_id = session['user_id']
         user_prayers = Prayer.query.filter_by(user_id=user_id).all()
 
-
-
-        # Filter prayers
+        # Create empty lists
         filtered_prayers = []
         prayed_today_prayers = []
-        for prayer in user_prayers:
-            within_seven_days = False
-            if prayer.history:
-                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
-                if last_prayed_date == current_utc_time.date():
-                    prayed_today_prayers.append(prayer)
-            
-            elif prayer.answered_at:
 
+        # Filter the prayers to display as daily prayers
+        for prayer in user_prayers:
+            # Set as boolean values
+            within_seven_days = False
+            prayed_today = False
+
+            # Check whether a prayer has been answered more than 7 days ago
+            if prayer.answered_at:
                 answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
                 time_difference = current_utc_time - answered_at
                 within_seven_days = time_difference <= timedelta(days=7)
-                if not prayer.archived and (not prayer.answered or within_seven_days):
-                    filtered_prayers.append(prayer)
 
+            # Check whether a prayer has been prayed today
+            if prayer.history:
+                    last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
+                    prayed_today = last_prayed_date == current_utc_time.date()
+
+            # Add prayers to either the prayed today list or the filtered list
+            if prayed_today:
+                prayed_today_prayers.append(prayer)        
+            elif not prayer.archived and (not prayer.answered or within_seven_days):
+                filtered_prayers.append(prayer)
 
         return render_template('index.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
     else:

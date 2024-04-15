@@ -37,15 +37,34 @@
 
             {% for prayer in prayers %}
             <tr>
-                <td>{{ prayer.title }}</td>
-                <td>{{ prayer.description }}</td>
                 <td>
-                    {% for tag in prayer.tag %} 
-                        {{ tag.name }}
-                    {% endfor %}
+                    <span id="title-{{ prayer.id }}" class="editable">{{ prayer.title }}</span>
+                    <input type="text" id="title-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.title }}" style="display: none;">
                 </td>
-                <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
                 <td>
+                    <span id="description-{{ prayer.id }}" class="editable">{{ prayer.description }}</span>
+                    <input type="text" id="description-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.description }}" style="display: none;">
+                </td>
+                <td>
+                    <span id="tag-{{ prayer.id }}" class="editable">{{ prayer.tag.name }}</span>
+                    <select id="tag-edit-{{ prayer.id }}" class="edit-field" style="display: none;">
+                        {% for category in categories %}
+                            <option value="{{ category }}" {% if prayer.tag == category %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <span id="status-{{ prayer.id }}" class="editable">{{ "Answered" if prayer.answered else "Pending" }}</span>
+                    <select id="status-edit-{{ prayer.id }}" class="edit-field" style="display: none;">
+                        <option value="answered" {% if prayer.answered %}selected{% endif %}>Answered</option>
+                        <option value="pending" {% if not prayer.answered %}selected{% endif %}>Pending</option>
+                    </select>
+                </td>
+                <td>
+                    <!-- Edit button -->
+                    {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id) %}
+                    <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
+
                     <!-- Button to mark prayer as answered -->
                     <form action="{% if prayer.answered %}{{ url_for('mark_pending', prayer_id=prayer.id) }}{% else %}{{ url_for('mark_answered', prayer_id=prayer.id) }}{% endif %}" method="POST" style="display:inline;">
                         <button type="submit">{% if prayer.answered %}Mark as Pending{% else %}Mark as Answered{% endif %}</button>
