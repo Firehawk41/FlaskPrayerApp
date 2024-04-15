@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for, flash, request, jsonify
+from flask import  Flask, render_template,  session, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
@@ -60,6 +60,13 @@ class PrayerHistory(db.Model):
     date_prayed = db.Column(db.DateTime, default=current_utc_time)
 
     prayer = db.relationship('Prayer', backref=db.backref('history'))
+
+@app.before_request
+def check_login():
+    print("Endpoint: " + str(request.endpoint))
+    print("Logged in: " + str(session.get('logged_in',False)))
+    if not session.get('logged_in') and request.endpoint != 'login' and request.endpoint != 'signup':
+        return redirect(url_for('login'))
 
 @app.route('/add_prayer', methods=['POST'])
 def add_prayer():
@@ -319,7 +326,8 @@ def signup():
         new_user = User(firstname=firstname,lastname=lastname, email=email,password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
-        return 'Sign-up successful!'
+        flash('Sign-up successful! Please log in.', 'success')
+        return redirect(url_for('login'))
     
     return render_template('signup.html')
 
