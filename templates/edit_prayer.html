@@ -14,7 +14,9 @@
         <label for="tag">Tag:</label>
         <select id="tag" name="tag">
             {% for category in categories %}    
-                <option value="{{ category }}" {% if prayer.tag == category %}selected{% endif %}>{{ category }}</option>
+                <option value="{{ category }}" {% if prayer.tag == category %}selected{% endif %}>
+                    {{ category }}
+                </option>
             {% endfor %}
         </select>    
         <br>

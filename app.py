@@ -21,11 +21,6 @@ db = SQLAlchemy(app)
 # Define possible prayer tags
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
 
-# Define the many-to-many association between prayers and tags
-prayer_tags = db.Table('prayer_tags',
-    db.Column('prayer_id', db.Integer, db.ForeignKey('prayer.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id'), primary_key=True))
-
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,10 +39,10 @@ class Prayer(db.Model):
     created_at = db.Column(db.DateTime, default=current_utc_time)
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
     answered_at = db.Column(db.DateTime)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), nullable=False)
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
-    tag = db.relationship('Tag', secondary=prayer_tags, lazy='subquery',
-        backref=db.backref('prayers', lazy=True))
+    tag =  db.relationship('Tag', backref=db.backref('prayers', lazy=True))
     
     def move_to_schedule(self):
         # Calculate the date 1 days from now
@@ -56,9 +51,8 @@ class Prayer(db.Model):
         db.session.commit()
 
 class Tag(db.Model):
-    __tablename__ = 'tag'
     id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(50), nullable = False)
+    name = db.Column(db.String(50), nullable = False, unique=True)
 
 class PrayerHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,19 +76,20 @@ def add_prayer():
         if not title or not description or not tag_name:
             return jsonify({'error': 'Title, description and tag are required'}), 400
 
-        # Create new Prayer object
-        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'])
+
         
         # Add tag to the prayer
         existing_tag = Tag.query.filter_by(name=tag_name).first()
         if not existing_tag:
+            # If the tag doesn't exist, create a new one
             new_tag = Tag(name=tag_name)
             db.session.add(new_tag)
             db.session.commit()
         else:
             new_tag = existing_tag
 
-        new_prayer.tag.append(new_tag)
+        # Create new Prayer object
+        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'], tag=new_tag)
 
         # Add new prayer to database and save changes
         db.session.add(new_prayer)
@@ -124,7 +119,7 @@ def edit_prayer(prayer_id):
         else:
             new_tag = existing_tag
 
-        prayer.Tag = new_tag
+        prayer.tag = new_tag
 
         if request.form['status'] == "answered":
             prayer.answered = True
@@ -208,7 +203,6 @@ def mark_prayed(prayer_id):
 
 @app.route('/delete_prayer/<int:prayer_id>', methods=['POST'])
 def delete_prayer(prayer_id):
-    print("got to delete app")
     prayer = Prayer.query.get_or_404(prayer_id)
     db.session.delete(prayer)
     db.session.commit()
