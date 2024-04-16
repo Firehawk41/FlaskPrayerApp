@@ -61,12 +61,20 @@ class PrayerHistory(db.Model):
 
     prayer = db.relationship('Prayer', backref=db.backref('history'))
 
+'''
 @app.before_request
 def check_login():
     print("Endpoint: " + str(request.endpoint))
     print("Logged in: " + str(session.get('logged_in',False)))
-    if not session.get('logged_in') and request.endpoint != 'login' and request.endpoint != 'signup':
+
+
+    if not session.get('logged_in') and request.endpoint != 'login':
+        
+        print(request.endpoint)
         return redirect(url_for('login'))
+    else:
+        return redirect(url_for(request.endpoint))
+'''
 
 @app.route('/add_prayer', methods=['POST'])
 def add_prayer():
@@ -149,7 +157,6 @@ def view_prayers():
         flash("Please log in to add a prayer", "error")
         return redirect(url_for('login'))
     
-    categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
     user_id = session['user_id']
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
     return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories)
@@ -217,29 +224,34 @@ def delete_prayer(prayer_id):
     return redirect(url_for('index'))
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'GET'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
+    if request.method == 'POST':
 
-    # Check if the email exists in the database
-    user = User.query.filter_by(email=email).first()
-    if user:
-        # Verify the password
-        if user.password and bcrypt.checkpw(password.encode('utf-8'), user.password):
-            # Authentication successful
-            session['logged_in'] = True
-            session['user_id'] = user.id
-            session['firstname'] = user.firstname
-            session['lastname'] = user.lastname
-            print('success')
-            flash('Login successful', 'success')
-            return redirect(url_for('index'))
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        # Check if the email exists in the database
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Verify the password
+            if user.password and bcrypt.checkpw(password.encode('utf-8'), user.password):
+                # Authentication successful
+                session['logged_in'] = True
+                session['user_id'] = user.id
+                session['firstname'] = user.firstname
+                session['lastname'] = user.lastname
+                print('success')
+                flash('Login successful', 'success')
+                return redirect(url_for('index'))
+        
+        # Authentication failed
+        flash('Invalid email or password', 'error')
+        print('fail')
+        return redirect(url_for('index'))
     
-    # Authentication failed
-    flash('Invalid email or password', 'error')
-    print('fail')
-    return redirect(url_for('index'))
+    return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -298,7 +310,7 @@ def index():
 
         return render_template('index.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
     else:
-        return render_template('login.html')
+        return redirect(url_for('login'))
     
     
 

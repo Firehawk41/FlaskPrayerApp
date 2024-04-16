@@ -36,8 +36,17 @@
 
 
     <div class="content">
-        {% block content %}
-        {% endblock %}
+        {% if session.logged_in %}
+            {% block content %}
+            {% endblock %}
+
+        {% elif request.path == url_for('login') or request.path == url_for('signup') %}
+            {% block content2 %}
+            {% endblock %}    
+        
+        {% else %}
+            <p>This content is reserved for logged in users.  Please log in.</p>
+        {% endif %}
     </div>
 
 
