@@ -1,8 +1,10 @@
-from flask import  Flask, render_template,  session, redirect, url_for, flash, request, jsonify
+from flask import  Flask, render_template, session, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 import os
+from bcrypt import checkpw
 import bcrypt
 
 # Load environment variables from .env file
@@ -12,6 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+login_manager = LoginManager(app)
 
 # Get currecnt UTC time
 current_utc_time = datetime.now(timezone.utc)
@@ -28,6 +31,21 @@ class User(db.Model):
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique = True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
+
+    def get_id(self):
+        return str(self.id)
+
+    def is_authenticated(self):
+        return True
+    
+    def is_active(self):
+        return True
+    
+    def is_anonymous(self):
+        return False
+    
+    def check_password(self, password):
+        return bcrypt.checkpw(password.encode('utf-8'), self.password)
 
 class Prayer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -61,22 +79,15 @@ class PrayerHistory(db.Model):
 
     prayer = db.relationship('Prayer', backref=db.backref('history'))
 
-'''
-@app.before_request
-def check_login():
-    print("Endpoint: " + str(request.endpoint))
-    print("Logged in: " + str(session.get('logged_in',False)))
+@login_manager.user_loader
+def load_user(user_id):
+    #return User.query.get(int(user_id))
+    return db.session.get(User,int(user_id))
 
-
-    if not session.get('logged_in') and request.endpoint != 'login':
-        
-        print(request.endpoint)
-        return redirect(url_for('login'))
-    else:
-        return redirect(url_for(request.endpoint))
-'''
+    
 
 @app.route('/add_prayer', methods=['POST'])
+@login_required
 def add_prayer():
     if request.method == 'POST':
         # Extract data from the form submission
@@ -104,7 +115,7 @@ def add_prayer():
             new_tag = existing_tag
 
         # Create new Prayer object
-        new_prayer = Prayer(title=title, description=description, user_id=session['user_id'], tag=new_tag)
+        new_prayer = Prayer(title=title, description=description, user_id=current_user.id, tag=new_tag)
 
         # Add new prayer to database and save changes
         db.session.add(new_prayer)
@@ -113,9 +124,14 @@ def add_prayer():
         return jsonify({'message': 'Prayer added successfully'}), 200
 
     return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
-    
+
+
 @app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
+@login_required
 def edit_prayer(prayer_id):
+    
+    prev_url = request.args.get('prev_url', '/')
+
     # Retrieve the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
     tag_name = request.form.get('tag')
@@ -146,22 +162,22 @@ def edit_prayer(prayer_id):
         db.session.commit()
 
         flash('Prayer updated successfully', 'success')
-        return redirect(url_for('view_prayers'))
+        return redirect(prev_url)
     
     # Render the edit prayer form
     return render_template('edit_prayer.html', prayer=prayer, categories=prayer_categories)
 
 @app.route('/prayers')
+@login_required
 def view_prayers():
-    if 'user_id' not in session:
-        flash("Please log in to add a prayer", "error")
-        return redirect(url_for('login'))
     
-    user_id = session['user_id']
+    user_id = current_user.id
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
     return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories)
 
+
 @app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
+@login_required
 def mark_answered(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
@@ -177,7 +193,9 @@ def mark_answered(prayer_id):
 
     return redirect(url_for('view_prayers'))
 
+
 @app.route('/mark_pending/<int:prayer_id>', methods=['POST'])
+@login_required
 def mark_pending(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
@@ -190,7 +208,9 @@ def mark_pending(prayer_id):
 
     return redirect(url_for('view_prayers'))
 
+
 @app.route('/mark_archived/<int:prayer_id>', methods=['POST'])
+@login_required
 def mark_archived(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
@@ -203,7 +223,9 @@ def mark_archived(prayer_id):
 
     return redirect(url_for('view_prayers'))
 
+
 @app.route('/mark_prayed/<int:prayer_id>', methods=['POST'])
+@login_required
 def mark_prayed(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
@@ -213,16 +235,25 @@ def mark_prayed(prayer_id):
     db.session.add(prayer_history)
     db.session.commit()
 
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
+
 
 @app.route('/delete_prayer/<int:prayer_id>', methods=['POST'])
+@login_required
 def delete_prayer(prayer_id):
     prayer = Prayer.query.get_or_404(prayer_id)
     db.session.delete(prayer)
     db.session.commit()
     flash('Item deleted.')
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
 
+@app.route('/')
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    # Render your login page template
+    return render_template('login.html')
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -233,84 +264,85 @@ def login():
 
         # Check if the email exists in the database
         user = User.query.filter_by(email=email).first()
-        if user:
-            # Verify the password
-            if user.password and bcrypt.checkpw(password.encode('utf-8'), user.password):
-                # Authentication successful
-                session['logged_in'] = True
-                session['user_id'] = user.id
-                session['firstname'] = user.firstname
-                session['lastname'] = user.lastname
-                print('success')
-                flash('Login successful', 'success')
-                return redirect(url_for('index'))
-        
-        # Authentication failed
-        flash('Invalid email or password', 'error')
-        print('fail')
-        return redirect(url_for('index'))
+        if user and user.check_password(password):
+            login_user(user)
+            print('login success')
+
+            return redirect(url_for('home'))
+        else:
+            # Authentication failed
+            flash('Invalid email or password', 'error')
+            print('fail')
     
     return render_template('login.html')
 
 
 @app.route('/logout')
+@login_required
 def logout():
-    session.pop('logged_in', None)
-    session.pop('firstname', None)
-    session.pop('lastname', None)
+    logout_user()
     return redirect(url_for('index'))
 
+
 @app.route('/account_settings')
+@login_required
 def account_settings():
     
     return render_template('account_settings.html')
 
+
 @app.route('/update_account', methods=['POST'])
+@login_required
 def update_account():
     if request.method == ['POST']:
 
 
         return redirect(url_for('account_settings'))
 
-@app.route('/', methods=['GET'])
-def index():
-    if 'logged_in' in session and session['logged_in']:
-        firstname = session.get('firstname')
-        lastname = session.get('lastname')
+@app.route('/home', methods=['GET'])
+@login_required
+def home():
 
-        user_id = session['user_id']
-        user_prayers = Prayer.query.filter_by(user_id=user_id).all()
+    firstname = current_user.firstname
+    lastname = current_user.lastname
 
-        # Create empty lists
-        filtered_prayers = []
-        prayed_today_prayers = []
 
-        # Filter the prayers to display as daily prayers
-        for prayer in user_prayers:
-            # Set as boolean values
-            within_seven_days = False
-            prayed_today = False
+    user_prayers = Prayer.query.filter_by(user_id=current_user.id).all()
 
-            # Check whether a prayer has been answered more than 7 days ago
-            if prayer.answered_at:
-                answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
-                time_difference = current_utc_time - answered_at
-                within_seven_days = time_difference <= timedelta(days=7)
+    # Create empty lists
+    filtered_prayers = []
+    prayed_today_prayers = []
 
-            # Check whether a prayer has been prayed today
-            if prayer.history:
-                    last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
-                    prayed_today = last_prayed_date == current_utc_time.date()
+    # Filter the prayers to display as daily prayers
+    for prayer in user_prayers:
+        # Set as boolean values
+        within_seven_days = False
+        prayed_today = False
 
-            # Add prayers to either the prayed today list or the filtered list
-            if prayed_today:
-                prayed_today_prayers.append(prayer)        
-            elif not prayer.archived and (not prayer.answered or within_seven_days):
-                filtered_prayers.append(prayer)
+        # Check whether a prayer has been answered more than 7 days ago
+        if prayer.answered_at:
+            print('answered')
+            answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
+            time_difference = current_utc_time - answered_at
+            print("Time Difference: " + str(time_difference))
+            within_seven_days = time_difference <= timedelta(days=7)
 
-        return render_template('index.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
-    else:
-        return redirect(url_for('login'))
+        # Check whether a prayer has been prayed today
+        if prayer.history:
+                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
+                prayed_today = last_prayed_date == current_utc_time.date()
+                print("Prayed today: " + str(prayed_today))
+
+        # Add prayers to either the prayed today list 
+        if prayed_today:
+            prayed_today_prayers.append(prayer)        
+        
+        # Add prayers to the filter prayer list
+        if not prayer.archived and (not prayer.answered or within_seven_days):
+            filtered_prayers.append(prayer)
+
+    return render_template('home.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
+
     
     
 

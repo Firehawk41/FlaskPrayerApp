@@ -62,7 +62,7 @@
                 </td>
                 <td>
                     <!-- Edit button -->
-                    {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id) %}
+                    {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
                     <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
 
                     <!-- Button to mark prayer as answered -->

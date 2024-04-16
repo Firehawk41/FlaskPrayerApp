@@ -11,24 +11,24 @@
     <div class="navbar">
         <div class="navbar-brand">Christian Reflections - A Prayer App</div>
         <nav>
-            {% if session.logged_in %}
-                <ul>
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
-                    <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
 
-                </ul>
-            {% endif %}
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
+                <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
+
+            </ul>
+
         </nav>
         <div class="login-logout-container">
-            {% if session.logged_in %}
-                <form action="/logout" method="GET">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('logout') }}" method="GET">
                     <button type="submit" class="logout-btn">Log Out</button>
                 </form>
-            {% elif 'signup' in request.path %}
-                <a href="/" class="login-signup-btn">Login</a>
+            {% elif '/signup' in request.path %}
+                <a href="{{ url_for('login') }}" class="login-signup-btn">Login</a>
             {% else %}
-                <a href="/signup" class="login-signup-btn">Sign Up</a>    
+                <a href="{{ url_for('signup') }}" class="login-signup-btn">Sign Up</a>    
             {% endif %}
         </div>
     </div>
@@ -36,17 +36,11 @@
 
 
     <div class="content">
-        {% if session.logged_in %}
-            {% block content %}
-            {% endblock %}
 
-        {% elif request.path == url_for('login') or request.path == url_for('signup') %}
-            {% block content2 %}
-            {% endblock %}    
-        
-        {% else %}
-            <p>This content is reserved for logged in users.  Please log in.</p>
-        {% endif %}
+        {% block content %}
+        {% endblock %}
+
+
     </div>
 
 

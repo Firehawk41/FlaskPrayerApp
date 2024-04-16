@@ -56,6 +56,11 @@ input[type="submit"]:hover {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.prayed-row {
+    background-color: #f0f0f0;
+    color: #555;
+}
 /* Navbar styles */
 
 .navbar {
