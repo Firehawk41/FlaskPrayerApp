@@ -4,41 +4,54 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <!--<header>
-        <h1>Christian Reflections - A Prayer App</h1>
-    </header>-->
-    <nav>
-        {% if session.logged_in %}
-            <form action="/logout" method="GET">
-                <button type="submit" class="logout-btn">Log Out</button>
-            </form>
-        {% elif 'signup' in request.path %}
-            <a href="/" class="login-signup-btn">Login</a>
-        {% else %}
-            <a href="/signup" class="login-signup-btn">Sign Up</a>    
-        {% endif %}
-    </nav>
+
     <div class="navbar">
         <div class="navbar-brand">Christian Reflections - A Prayer App</div>
         <nav>
+
             <ul>
                 <li><a href="{{ url_for('index') }}">Home</a></li>
-                <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
-                <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
+                
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
+                    <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
+                {% endif %}
             </ul>
+
         </nav>
+        <div class="login-logout-container">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('logout') }}" method="GET">
+                    <button type="submit" class="logout-btn">Log Out</button>
+                </form>
+            {% elif '/signup' in request.path %}
+                <a href="{{ url_for('login') }}" class="login-signup-btn">Login</a>
+            {% else %}
+                <a href="{{ url_for('signup') }}" class="login-signup-btn">Sign Up</a>    
+            {% endif %}
+        </div>
     </div>
+    
+
 
     <div class="content">
+
         {% block content %}
         {% endblock %}
+
+
     </div>
+
+
+
+    
     <footer>
 
     </footer>
+    
     {% block scripts %}
 
     {% endblock %}
