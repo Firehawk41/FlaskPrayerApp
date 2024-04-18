@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
 
@@ -14,9 +14,11 @@
 
             <ul>
                 <li><a href="{{ url_for('index') }}">Home</a></li>
-                <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
-                <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
-
+                
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
+                    <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
+                {% endif %}
             </ul>
 
         </nav>

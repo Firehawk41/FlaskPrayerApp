@@ -61,6 +61,9 @@ class Prayer(db.Model):
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
     tag =  db.relationship('Tag', backref=db.backref('prayers', lazy=True))
+
+    history = db.relationship('PrayerHistory', back_populates='prayer', cascade='all, delete-orphan')
+
     
     def move_to_schedule(self):
         # Calculate the date 1 days from now
@@ -77,7 +80,8 @@ class PrayerHistory(db.Model):
     prayer_id = db.Column(db.Integer, db.ForeignKey('prayer.id'), nullable=False)
     date_prayed = db.Column(db.DateTime, default=current_utc_time)
 
-    prayer = db.relationship('Prayer', backref=db.backref('history'))
+    prayer = db.relationship('Prayer', back_populates='history')
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -321,17 +325,14 @@ def home():
 
         # Check whether a prayer has been answered more than 7 days ago
         if prayer.answered_at:
-            print('answered')
             answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
             time_difference = current_utc_time - answered_at
-            print("Time Difference: " + str(time_difference))
             within_seven_days = time_difference <= timedelta(days=7)
 
         # Check whether a prayer has been prayed today
         if prayer.history:
                 last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
                 prayed_today = last_prayed_date == current_utc_time.date()
-                print("Prayed today: " + str(prayed_today))
 
         # Add prayers to either the prayed today list 
         if prayed_today:

@@ -4,25 +4,33 @@
 
 {% block content %}
     <h1>Prayers</h1>
-    
+    <!--Action buttons-->
+    <div class="action-buttons">
+
+        <button id="markAnsweredBtn" disabled>Mark Selected as Answered</button>
+        <button id="markPendingBtn" disabled>Mark Selected as Pending</button>
+        <button id="deleteBtn" disabled>Delete Selected</button>
+    </div>
     <table class="prayer-table">
         <thead>
             <tr>
+                <th>Select</th>
                 <th>Title</th>
                 <th>Description</th>
                 <th>Tag</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     <button onclick="toggleAddPrayerForm()">Add Prayer</button>
                 </td>
             </tr>
             <!-- Form for adding a new prayer -->
             <tr id="addPrayerForm" style="display: none;">
+                <td></td>
                 <td><input type="text" id="newPrayerTitle" name="newPrayerTitle"></td>
                 <td><textarea id="newPrayerDescription" name="newPrayerDescription"></textarea></td>
                 <td>
@@ -37,6 +45,7 @@
 
             {% for prayer in prayers %}
             <tr>
+                <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
                 <td>
                     <span id="title-{{ prayer.id }}" class="editable">{{ prayer.title }}</span>
                     <input type="text" id="title-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.title }}" style="display: none;">
@@ -64,63 +73,12 @@
                     <!-- Edit button -->
                     {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
                     <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
-
-                    <!-- Button to mark prayer as answered -->
-                    <form action="{% if prayer.answered %}{{ url_for('mark_pending', prayer_id=prayer.id) }}{% else %}{{ url_for('mark_answered', prayer_id=prayer.id) }}{% endif %}" method="POST" style="display:inline;">
-                        <button type="submit">{% if prayer.answered %}Mark as Pending{% else %}Mark as Answered{% endif %}</button>
-                    </form>
-                    <!-- Button to mark prayer as archived -->
-                    <form action="{{ url_for('mark_archived', prayer_id=prayer.id) }}" method="POST" style="display: inline;">
-                        <button type="submit">Archive</button>
-                    </form>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <script>
-        function toggleAddPrayerForm() {
-            var formRow = document.getElementById('addPrayerForm');
-            formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
-        }
-        function addPrayer(event) {
-            //Prevent the default form submission behavior
-            event.preventDefault();
-
-            var title = document.getElementById('newPrayerTitle').value;
-            var description = document.getElementById('newPrayerDescription').value;
-            var tag = document.querySelector('select[name="tag"]').value;
-
-            // Create a new FormData object to send the form data
-            var formData = new FormData();
-            formData.append('title', title);
-            formData.append('description', description);
-            formData.append('tag', tag);
-
-            //Log the values of title and description to the console
-            console.log('Title:', title);
-            console.log('Description:', description);
-            console.log('Tag:' + tag);
-
-            // Send a POST request to the server using AJAX
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/add_prayer', true);
-
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    window.location.reload();
-                } else {
-                    console.error('Failed to add prayer. Status: ' + xhr.status);
-                }
-            };
-            
-            xhr.onerror = function () {
-                console.error('Failed to send request.');
-            };
-
-            xhr.send(formData);
-        }
-    </script>
+    <script src="static/js/prayerActions.js"></script>
 
 {% endblock %}

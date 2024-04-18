@@ -9,14 +9,24 @@
     </div>
     <h1>Daily Prayers</h1>
 
+    <!--Action buttons-->
+    <div class="action-buttons">
+
+        <button id="markAnsweredBtn" disabled>Mark Selected as Answered</button>
+        <button id="markPendingBtn" disabled>Mark Selected as Pending</button>
+        <button id="deleteBtn" disabled>Delete Selected</button>
+    </div>
+
     <table class="prayer-table">
         <thead>
             <tr>
+                <th>Select</th>
                 <th>Title</th>
                 <th>Description</th>
                 <th>Tag</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Answered</th>
+                <th>Prayed Today</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -28,21 +38,17 @@
                     {% set row_class = "prayed-row" %}
                 {% endif %}
                 <tr class="{{ row_class }}">
+                    <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
                     <td>{{ prayer.title }}</td>
                     <td>{{ prayer.description }}</td>
                     <td>{{ prayer.tag.name }}</td>
                     <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
+                    <td>{{ "Yes" if prayer in prayed_today_prayers else "No" }}</td>
                     <td>
-                        <!-- Button to mark prayer as prayed -->
-                        <form action="{{url_for('mark_prayed', prayer_id=prayer.id)}}" method="POST" style="display:inline;">
-                            <button type="submit">Mark as Prayed</button>
-                        </form>
-
                         <!-- Edit button -->
                         {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
                         <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
                     </td>
-                
                 </tr>
 
             {% endfor %}
@@ -50,4 +56,6 @@
         </tbody>
     </table>
 
+    <script src="static/js/prayerActions.js"></script>
 {% endblock %}
+
