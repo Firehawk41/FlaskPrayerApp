@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('input[name="selectedPrayers"]');
     const markAnsweredBtn = document.getElementById('markAnsweredBtn');
     const markPendingBtn = document.getElementById('markPendingBtn');
-
+    const markPrayedBtn = document.getElementById('markPrayedBtn');
     const deleteBtn = document.getElementById('deleteBtn');
 
     // Enable/disable action buttons based on checkbox selection
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             markAnsweredBtn.disabled = disabled;
             markPendingBtn.disabled = disabled;
-
+            markPrayedBtn.disabled = disabled;
             deleteBtn.disabled = disabled;
         });
     });
@@ -30,6 +30,12 @@ document.addEventListener('DOMContentLoaded', function() {
     markPendingBtn.addEventListener('click', function() {
         handlePrayerAction('mark_pending');
     });
+
+
+    markPrayedBtn.addEventListener('click', function() {
+        handlePrayerAction('mark_prayed');
+    });
+
 
     deleteBtn.addEventListener('click', function() {
         handlePrayerAction('delete_prayer');

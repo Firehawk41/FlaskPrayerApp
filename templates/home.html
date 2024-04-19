@@ -14,6 +14,8 @@
 
         <button id="markAnsweredBtn" disabled>Mark Selected as Answered</button>
         <button id="markPendingBtn" disabled>Mark Selected as Pending</button>
+        <button id="markPrayedBtn" disabled>Mark Selected as Prayed</button>
+
         <button id="deleteBtn" disabled>Delete Selected</button>
     </div>
 
@@ -33,10 +35,15 @@
 
 
             {% for prayer in filtered_prayers %}
-                {% set row_class = "unprayed-row" %}
+                {% set row_class = "unprayed" %}
+                
                 {% if prayer in prayed_today_prayers %}
-                    {% set row_class = "prayed-row" %}
+                    {% set row_class = "prayed" %}
                 {% endif %}
+                {% if prayer.answered %}
+                    {% set row_class = row_class + "-answered" %}
+                {% endif %}
+                {% set row_class = row_class + "-row" %}
                 <tr class="{{ row_class }}">
                     <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
                     <td>{{ prayer.title }}</td>
