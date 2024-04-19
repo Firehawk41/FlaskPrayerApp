@@ -51,7 +51,7 @@
                     <input type="text" id="title-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.title }}" style="display: none;">
                 </td>
                 <td>
-                    <span id="description-{{ prayer.id }}" class="editable">{{ prayer.description }}</span>
+                    <span id="description-{{ prayer.id }}" class="editable">{% if prayer.answered %}Thank you for answering my prayer of {{prayer.title}}.{% else %}{{ prayer.description }}{% endif %}</span>
                     <input type="text" id="description-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.description }}" style="display: none;">
                 </td>
                 <td>

@@ -64,12 +64,23 @@ class Prayer(db.Model):
 
     history = db.relationship('PrayerHistory', back_populates='prayer', cascade='all, delete-orphan')
 
+    answered_prayer = db.relationship('AnsweredPrayer', back_populates='original_prayer', uselist = False, cascade='all, delete-orphan')
+
     
     def move_to_schedule(self):
         # Calculate the date 1 days from now
         next_pray_date = current_utc_time + timedelta(days=1)
         self.next_pray_date = next_pray_date
         db.session.commit()
+
+class AnsweredPrayer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    original_prayer_id = db.Column(db.Integer, db.ForeignKey('prayer.id'),nullable = False)
+    content = db.Column(db.Text,nullable = False)
+    created_at = db.Column(db.DateTime, default=current_utc_time)
+
+
+    original_prayer = db.relationship('Prayer', back_populates='answered_prayer')
 
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -177,6 +188,7 @@ def view_prayers():
     
     user_id = current_user.id
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
+
     return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories)
 
 
@@ -192,6 +204,10 @@ def mark_answered(prayer_id):
     # Set the answered date
     prayer.answered_at = current_utc_time
 
+    # Add answered prayer
+    answered_Prayer = AnsweredPrayer(original_prayer_id = prayer_id,content=f"Thank you for answering my prayer of {prayer.title}.")
+    db.session.add(answered_Prayer)
+
     # Commit the changes to the database
     db.session.commit()
 
@@ -206,6 +222,9 @@ def mark_pending(prayer_id):
 
     # Mark the prayer as answered
     prayer.answered = False
+
+    # Delete the answered prayer
+    db.session.delete(prayer.answered_prayer)
 
     # Commit the changes to the database
     db.session.commit()
@@ -322,6 +341,10 @@ def home():
         # Set as boolean values
         within_seven_days = False
         prayed_today = False
+
+        # Update prayer description for answered prayers
+        if prayer.answered:
+            prayer.description = f"Thank you for answering my prayer for {prayer.title}."
 
         # Check whether a prayer has been answered more than 7 days ago
         if prayer.answered_at:
