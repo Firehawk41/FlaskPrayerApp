@@ -11,10 +11,19 @@
         <label for="description">Description:</label>
         <input type="text" id="description" name="description" value="{{ prayer.description }}" required>
         <br>
+        <div class="form-group" style="display: inline;">
+            <label for="reminderDays">Reminder Days:</label><br>
+            {% for day in days_of_week %}
+                <label class="checkbox-inline">
+                    <input type="checkbox" id="{{ day }}" name="reminderDays" value="{{ day }}"{% if day in prayer.reminder.split(',') %}checked{% endif %}>
+                    {{ day|capitalize }}
+                </label>
+            {% endfor %}
+        </div>
         <label for="tag">Tag:</label>
         <select id="tag" name="tag">
             {% for category in categories %}    
-                <option value="{{ category }}" {% if prayer.tag == category %}selected{% endif %}>
+                <option value="{{ category }}" {% if prayer.tag.name == category %}selected{% endif %}>
                     {{ category }}
                 </option>
             {% endfor %}
@@ -27,6 +36,13 @@
             <option value="pending"{% if not prayer.answered %}selected{% endif %}>Pending</option>
         </select>
 
+        <br>
+        <br>
+        <label for="sharable">Share with friends?</label>
+        <select id="sharable" name="sharable">
+            <option value="private"{% if not prayer.sharable %}selected{% endif %}>Private</option>
+            <option value="shared"{% if prayer.sharable %}selected{% endif %}>Shared</option>
+        </select>
         <br>
         <br>
         <button type="submit">Save Changes</button>

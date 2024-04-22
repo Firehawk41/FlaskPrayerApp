@@ -23,7 +23,7 @@ db = SQLAlchemy(app)
 
 # Define possible prayer tags
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
-
+days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,6 +58,9 @@ class Prayer(db.Model):
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
     answered_at = db.Column(db.DateTime)
     tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), nullable=False)
+    reminder = db.Column(db.String(60),default=("Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"))
+    sharable = db.Column(db.Boolean, default=False)
+    
 
     user = db.relationship('User', backref=db.backref('prayers', lazy=True))
     tag =  db.relationship('Tag', backref=db.backref('prayers', lazy=True))
@@ -101,9 +104,11 @@ def load_user(user_id):
 
     
 
-@app.route('/add_prayer', methods=['POST'])
+@app.route('/add_prayer', methods=['POST', 'GET'])
 @login_required
 def add_prayer():
+
+
     if request.method == 'POST':
         # Extract data from the form submission
         title = request.form.get('title')
@@ -117,8 +122,10 @@ def add_prayer():
         if not title or not description or not tag_name:
             return jsonify({'error': 'Title, description and tag are required'}), 400
 
+        # Add reminder days to prayer
+        reminder_days = request.form.getlist('reminderDays')
+        reminder_days_str = ",".join(reminder_days)
 
-        
         # Add tag to the prayer
         existing_tag = Tag.query.filter_by(name=tag_name).first()
         if not existing_tag:
@@ -129,16 +136,27 @@ def add_prayer():
         else:
             new_tag = existing_tag
 
+        # Add sharable status
+        sharable = False
+        sharable_str = request.form.get('sharable', 'False')
+        print("Share status is: " + str(sharable_str) + ".")
+        if sharable_str == "shared":
+            sharable = True
+        
+
         # Create new Prayer object
-        new_prayer = Prayer(title=title, description=description, user_id=current_user.id, tag=new_tag)
+        new_prayer = Prayer(title=title, description=description, user_id=current_user.id, sharable=sharable, tag=new_tag,reminder=reminder_days_str)
 
         # Add new prayer to database and save changes
         db.session.add(new_prayer)
         db.session.commit()
         
-        return jsonify({'message': 'Prayer added successfully'}), 200
+        jsonify({'message': 'Prayer added successfully'}), 200
+        return redirect(url_for('home'))
 
-    return jsonify({'error': 'Only POST requests are allowed for this route'}), 405
+
+
+    return render_template('add_prayer.html', categories=prayer_categories, days_of_week=days_of_week)
 
 
 @app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
@@ -156,6 +174,10 @@ def edit_prayer(prayer_id):
         prayer.title = request.form['title']
         prayer.description = request.form['description']
 
+        # Update reminder days to prayer
+        reminder_days = request.form.getlist('reminderDays')
+        prayer.reminder = ",".join(reminder_days)
+
         # Add tag to the prayer
         existing_tag = Tag.query.filter_by(name=tag_name).first()
         if not existing_tag:
@@ -167,11 +189,18 @@ def edit_prayer(prayer_id):
 
         prayer.tag = new_tag
 
+        # Update the prayer status
         if request.form['status'] == "answered":
             prayer.answered = True
         else:
             prayer.answered = False
-        #prayer.answered = request.form['answered']
+
+        # Update the sharing
+        if request.form['sharable'] == "shared":
+            prayer.sharable = True
+        else:
+            prayer.sharable = False
+
 
         # Commit changes to the database
         db.session.commit()
@@ -180,7 +209,7 @@ def edit_prayer(prayer_id):
         return redirect(prev_url)
     
     # Render the edit prayer form
-    return render_template('edit_prayer.html', prayer=prayer, categories=prayer_categories)
+    return render_template('edit_prayer.html', prayer=prayer, categories=prayer_categories, days_of_week=days_of_week)
 
 @app.route('/prayers')
 @login_required
@@ -341,6 +370,15 @@ def home():
         # Set as boolean values
         within_seven_days = False
         prayed_today = False
+        remind_me_today = False
+
+        # Get the current day in lower case
+        today = datetime.now().strftime("%A").lower()
+        # Check whether this prayer is set to be prayed today
+        remind_days = prayer.reminder.split(",")
+        today_lower = today.lower()
+        remind_me_today = today_lower in map(str.lower, remind_days)
+
 
         # Update prayer description for answered prayers
         if prayer.answered:
@@ -362,7 +400,7 @@ def home():
             prayed_today_prayers.append(prayer)        
         
         # Add prayers to the filter prayer list
-        if not prayer.archived and (not prayer.answered or within_seven_days):
+        if remind_me_today and not prayer.archived and (not prayer.answered or within_seven_days):
             filtered_prayers.append(prayer)
 
     return render_template('home.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)

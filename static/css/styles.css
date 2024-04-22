@@ -29,7 +29,10 @@ input[type="submit"]:hover {
     position: relative;
 }
 
-
+.checkbox-inline {
+    display: inline-block;
+    margin-right: 10px;
+}
 .prayer-table {
     width:100%;
     border-collapse: collapse;

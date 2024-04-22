@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 });
+
+/*
 function toggleAddPrayerForm() {
     var formRow = document.getElementById('addPrayerForm');
     formRow.style.display = formRow.style.display === 'none' ? 'table-row' : 'none';
@@ -111,3 +113,4 @@ function addPrayer(event) {
 
     xhr.send(formData);
 }
+*/

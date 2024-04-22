@@ -25,10 +25,12 @@
         <tbody>
             <tr>
                 <td colspan="6">
-                    <button onclick="toggleAddPrayerForm()">Add Prayer</button>
+                    <button onclick="window.location.href='{{ add_prayer }}';">Add Prayer</button>
                 </td>
             </tr>
+            
             <!-- Form for adding a new prayer -->
+            <!-- Disable this section for now
             <tr id="addPrayerForm" style="display: none;">
                 <td></td>
                 <td><input type="text" id="newPrayerTitle" name="newPrayerTitle"></td>
@@ -42,7 +44,7 @@
                 </td>
                 <td><button type="button" onclick="addPrayer(event)">Submit</button></td>
             </tr>
-
+                -->
             {% for prayer in prayers %}
             <tr>
                 <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
