@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Friend Request{% endblock %}
+
+{% block content %}
+    <h1>Send Friend Request</h1>
+    <form method="POST">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+
+        <button type="submit">Send Request</button>
+        <a href="javascript:history.go(-1);" class="form-btn">Cancel</a>
+        
+    </form>
+    <br>
+    <br>
+    <table class="friend-table">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Friend</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if not friend_list %}
+            <tr>
+                <th></th>
+                <td colspan="2">No friends found... yet!</td>
+            </tr>
+            {% else %}
+                {% for friend in friend_list %}
+
+                    <tr class="friend">
+                        <td><input type="checkbox" name="selectedFriends" value="{{ friend.id }}"></td>
+                        <td>{{ friend.receiver.first_name }} {{ friend.receiver.last_name }}</td>
+                        <td>
+                            <!-- Edit button -->
+                            <!-- {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}-->
+                            <button onclick="window.location.href='{{ friends }}';" class="edit-btn">Edit</button>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    <br>
+    <br>
+    <table class="friend-table">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Request</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if not request_in_list %}
+            <tr>
+                <th></th>
+                <td colspan="2">No requests found... yet!</td>
+            </tr>
+            {% else %}
+                {% for request in request_in_list %}
+
+                    <tr class="friend">
+                        <td><input type="checkbox" name="selectedRequest" value="{{ request.id }}"></td>
+                        <td>{{ request.receiver.first_name }} {{ request.receiver.last_name }}</td>
+                        <td>
+                            <!-- Edit button -->
+                            <!-- {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}-->
+                            <button onclick="window.location.href='{{ friends }}';" class="edit-btn">Edit</button>
+                        </td>
+                    </tr>
+
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    <br>
+    <br>
+    <table class="friend-table">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Request</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if not request_out_list %}
+            <tr>
+                <th></th>
+                <td colspan="2">No requests found... yet!</td>
+            </tr>
+            {% else %}
+                {% for request in request_out_list %}
+
+                    <tr class="friend">
+                        <td><input type="checkbox" name="selectedRequest" value="{{ request.id }}"></td>
+                        <td>Name: {{ request.receiver.firstname }} {{ request.receiver.lastname }}</td>
+                        <td>
+                            <!-- Edit button -->
+
+                            Edit
+                        </td>
+                    </tr>
+
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+{% endblock %}

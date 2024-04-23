@@ -96,6 +96,25 @@ class PrayerHistory(db.Model):
 
     prayer = db.relationship('Prayer', back_populates='history')
 
+class FriendRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.Enum('Pending', 'Accepted', 'Declined'), default='Pending', nullable=False)
+    sent_at = db.Column(db.DateTime, default=current_utc_time)
+    updated_at = db.Column(db.DateTime, onupdate=current_utc_time)
+
+    # Define relationships
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_friend_requests')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_friend_requests')
+
+    # Function to check whether a friendship exists
+    @staticmethod
+    def are_friends(user1_id, user2_id):
+        friend_request = FriendRequest.query.filter((FriendRequest.sender_id ==user1_id) & (FriendRequest.receiver_id == user2_id) & (FriendRequest.status == 'Accepted')).first()
+
+        return friend_request is not None
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -437,7 +456,47 @@ def signup():
     
     return render_template('signup.html')
 
+@app.route('/friends', methods=['POST','GET'])
+@login_required
+def friends():
 
+    if request.method == 'POST':
+        email = request.form.get('email').strip()
+
+        existing_user = User.query.filter_by(email=email).first()
+        if not existing_user:
+            # if the user doesn't exist, handle accordingly
+            flash('This account does not exist.', 'error')
+            return redirect(url_for('friends'))
+        
+        if existing_user == current_user:
+            flash('You cannot send a friend request to yourself.', 'error')
+            return redirect(url_for('friends'))
+        
+        friendship_exists = FriendRequest.are_friends(current_user.id, existing_user.id)
+        if friendship_exists:
+            flash('You are already friends with this user.', 'error')
+            return redirect(url_for('friends'))
+
+        friend_request = FriendRequest(sender_id=current_user.id, receiver_id=existing_user.id)
+
+        db.session.add(friend_request)
+        db.session.commit()
+
+        flash('Friend request sent successfully.', 'success')
+        return redirect(url_for('friends'))
+    
+    friend_list = FriendRequest.query.filter_by(sender_id=current_user.id, status='Accepted').all()
+
+    request_in_list = FriendRequest.query.filter_by(receiver_id=current_user.id, status='Pending').all()
+
+    request_out_list = FriendRequest.query.filter_by(sender_id=current_user.id, status='Pending').all()
+
+    
+    for friend_request in request_in_list:
+        print(friend_request.receiver_id)
+
+    return render_template('send_friend_request.html', friend_list=friend_list, request_in_list=request_in_list, request_out_list=request_out_list)
 
 if __name__ == '__main__':
     with app.app_context():

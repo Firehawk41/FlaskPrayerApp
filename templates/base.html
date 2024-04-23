@@ -18,6 +18,7 @@
                 {% if current_user.is_authenticated %}
                     <li><a href="{{ url_for('add_prayer') }}">Add Prayer</a></li>
                     <li><a href="{{ url_for('view_prayers') }}">View My Prayers</a></li>
+                    <li><a href="{{ url_for('friends') }}">Friends</a></li>
                     <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
                 {% endif %}
             </ul>
