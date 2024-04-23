@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Friend Request{% endblock %}
+
+{% block content %}
+    <h1>Send Friend Request</h1>
+    <form method="POST">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+
+        <button type="submit">Send Request</button>
+        <a href="javascript:history.go(-1);" class="form-btn">Cancel</a>
+        
+    </form>
+    <br>
+    <br>
+    {% for table_data in tables %}
+        <table class="friend-table">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>{{ table_data.heading }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if not table_data.rows %}
+                <tr>
+                    <th></th>
+                    <td colspan="2">No {{ table_data.heading|lower }} found... yet!</td>
+                </tr>
+                {% else %}
+                    {% for row in table_data.rows %}
+
+                        <tr class="friend">
+                            <td><input type="checkbox" name="{{ table_data.checkbox_name }}" value="{{ row.id }}"></td>
+                            <td>{{ row.receiver.firstname }} {{ row.receiver.lastname }}</td>
+                            <td>
+                                <!-- Buttons based on the type of request -->
+                            {% if table_data.heading == 'Friends' %}
+                                <form action="{{ url_for('cancel_or_unfriend', friend_id=row.id) }}" method="POST">
+                                    <button type="submit" class="edit-btn">Unfriend</button>
+                                </form>
+                            {% elif table_data.heading == 'Outgoing Requests' %}
+                                <form action="{{ url_for('cancel_or_unfriend', request_id=row.id) }}" method="POST">
+                                    <button type="submit" class="edit-btn">Cancel</button>
+                                </form>
+                            {% else %}
+                                <td>
+                                    <form action="{{ url_for('accept_friend_request', request_id=row.id) }}" method="POST">
+                                        <button type="submit" class="edit-btn">Accept</button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('decline_friend_request', request_id=row.id) }}" method="POST">
+                                        <button type="submit" class="edit-btn">Decline</button>
+                                    </form>
+                                </td>
+                            {% endif %}
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+        <br>
+        <br>
+    {% endfor %}
+        
+{% endblock %}

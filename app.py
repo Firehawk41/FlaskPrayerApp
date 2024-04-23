@@ -492,11 +492,64 @@ def friends():
 
     request_out_list = FriendRequest.query.filter_by(sender_id=current_user.id, status='Pending').all()
 
-    
-    for friend_request in request_in_list:
-        print(friend_request.receiver_id)
+    tables = [
+        {'heading': 'Friends', 'rows': friend_list, 'checkbox-name': 'selectedFriends'},
+        {'heading': 'Incoming Requests', 'rows': request_in_list, 'checkbox_name': 'selectedRequest'},
+        {'heading': 'Outgoing Requests', 'rows': request_out_list, 'checkbox_name': 'selectedRequest'}
+    ]
 
-    return render_template('send_friend_request.html', friend_list=friend_list, request_in_list=request_in_list, request_out_list=request_out_list)
+    return render_template('friends.html', tables=tables)
+
+@app.route('/accept_friend_request/<int:request_id>', methods=['POST'])
+@login_required
+def accept_friend_request(request_id):
+    # Get the request from the database
+    request = FriendRequest.query.get_or_404(request_id)
+    sender_id = request.sender_id
+    receiver_id = request.receiver_id
+
+    # Mark the request as accepted
+    request.status = 'Accepted'
+
+    # Add reciprical friendship
+    reciprical_friendship = FriendRequest(sender_id=receiver_id, receiver_id=sender_id,status='Accepted')
+    db.session.add(reciprical_friendship)
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('friends'))
+
+@app.route('/decline_friend_request/<int:request_id>', methods=['POST'])
+@login_required
+def decline_friend_request(request_id):
+    # Get the request from the database
+    request = FriendRequest.query.get_or_404(request_id)
+
+
+    # Mark the request as declinded
+    request.status = 'Declined'
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('friends'))
+
+@app.route('/cancel_or_unfriend/<int:request_id>', methods=['POST'])
+@login_required
+def cancel_or_unfriend(request_id):
+    # Get the request from the database
+    request = FriendRequest.query.get_or_404(request_id)
+
+
+    # Delete the friend request
+    db.session.delete(request)
+
+    # Commit the changes to the database
+    db.session.commit()
+
+    return redirect(url_for('friends'))
+
 
 if __name__ == '__main__':
     with app.app_context():
