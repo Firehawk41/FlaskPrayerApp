@@ -4,62 +4,7 @@
 
 {% block content %}
     <h1>Friends' Prayers</h1>
-    <!--Action buttons-->
-    <div class="action-buttons">
-
-        <button id="markAnsweredBtn" disabled>Mark Selected as Answered</button>
-        <button id="markPendingBtn" disabled>Mark Selected as Pending</button>
-        <button id="deleteBtn" disabled>Delete Selected</button>
-    </div>
-    <table class="prayer-table">
-        <thead>
-            <tr>
-                <th>Select</th>
-                <th>Friend</th>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Tag</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            
-            {% for prayer in prayers %}
-            <tr>
-                <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
-                <td>
-                    <span id="name-{{ prayer.id }}" class="editable">{{ prayer.user.firstname }} {{ prayer.user.lastname }}</span>
-                    <input type="text" id="name-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.user.firstname }} {{ prayer.user.lastname }}" style="display: none;">
-                </td>
-                <td>
-                    <span id="title-{{ prayer.id }}" class="editable">{{ prayer.title }}</span>
-                    <input type="text" id="title-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.title }}" style="display: none;">
-                </td>
-                <td>
-                    <span id="description-{{ prayer.id }}" class="editable">{% if prayer.answered %}Thank you for answering my prayer of {{prayer.title}}.{% else %}{{ prayer.description }}{% endif %}</span>
-                    <input type="text" id="description-edit-{{ prayer.id }}" class="edit-field" value="{{ prayer.description }}" style="display: none;">
-                </td>
-                <td>
-                    <span id="tag-{{ prayer.id }}" class="editable">{{ prayer.tag.name }}</span>
-                    <select id="tag-edit-{{ prayer.id }}" class="edit-field" style="display: none;">
-                        {% for category in categories %}
-                            <option value="{{ category }}" {% if prayer.tag == category %}selected{% endif %}>{{ category }}</option>
-                        {% endfor %}
-                    </select>
-                </td>
-                <td>
-                    <span id="status-{{ prayer.id }}" class="editable">{{ "Answered" if prayer.answered else "Pending" }}</span>
-                    <select id="status-edit-{{ prayer.id }}" class="edit-field" style="display: none;">
-                        <option value="answered" {% if prayer.answered %}selected{% endif %}>Answered</option>
-                        <option value="pending" {% if not prayer.answered %}selected{% endif %}>Pending</option>
-                    </select>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <script src="static/js/prayerActions.js"></script>
+ 
+    {% include 'common_prayer_tables.html' %}
 
 {% endblock %}

@@ -45,11 +45,13 @@
         </select>
         <br>
         <br>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Save Changes</button>
         <a href="javascript:history.go(-1);" class="form-btn">Cancel</a>
         
     </form>
     <form method="post" action="{{ url_for('delete_prayer', prayer_id=prayer.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input class="delete-btn" type="submit" name="delete" value="Delete Prayer">
     </form>
 {% endblock %}

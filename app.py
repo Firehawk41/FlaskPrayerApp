@@ -7,6 +7,7 @@ import os
 from bcrypt import checkpw
 import bcrypt
 from sqlalchemy import and_, not_
+from flask_wtf.csrf import CSRFProtect
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,6 +17,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
 login_manager = LoginManager(app)
+csrf = CSRFProtect(app)
 
 # Get currecnt UTC time
 current_utc_time = datetime.now(timezone.utc)
@@ -32,6 +34,8 @@ class User(db.Model):
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique = True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
+
+    history = db.relationship('PrayerHistory', back_populates='user')
 
     def get_id(self):
         return str(self.id)
@@ -93,9 +97,11 @@ class Tag(db.Model):
 class PrayerHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     prayer_id = db.Column(db.Integer, db.ForeignKey('prayer.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date_prayed = db.Column(db.DateTime, default=current_utc_time)
 
     prayer = db.relationship('Prayer', back_populates='history')
+    user = db.relationship('User', back_populates='history')
 
 class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -182,12 +188,16 @@ def add_prayer():
 @app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
 @login_required
 def edit_prayer(prayer_id):
-    
+
     prev_url = request.args.get('prev_url', '/')
 
     # Retrieve the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
     tag_name = request.form.get('tag')
+
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect(prev_url)
 
     if request.method == 'POST':
         # Update prayer details based on form submission
@@ -238,7 +248,7 @@ def view_prayers():
     user_id = current_user.id
     user_prayers = Prayer.query.filter_by(user_id=user_id).all()
 
-    return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories)
+    return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories, page_name='prayers')
 
 
 @app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
@@ -246,16 +256,17 @@ def view_prayers():
 def mark_answered(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-
+    print('Found prayer')
+    # Prevent editing of other users' prayers
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect('view_prayers')
+    
     # Mark the prayer as answered
     prayer.answered = True
 
     # Set the answered date
     prayer.answered_at = current_utc_time
-
-    # Add answered prayer
-    answered_Prayer = AnsweredPrayer(original_prayer_id = prayer_id,content=f"Thank you for answering my prayer of {prayer.title}.")
-    db.session.add(answered_Prayer)
 
     # Commit the changes to the database
     db.session.commit()
@@ -269,11 +280,13 @@ def mark_pending(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
 
+    # Prevent editing of other users' prayers
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect('view_prayers')
+
     # Mark the prayer as answered
     prayer.answered = False
-
-    # Delete the answered prayer
-    db.session.delete(prayer.answered_prayer)
 
     # Commit the changes to the database
     db.session.commit()
@@ -287,6 +300,11 @@ def mark_archived(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
 
+    # Prevent editing of other users' prayers
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect('view_prayers')
+    
     # Mark the prayer as answered
     prayer.archived = True
 
@@ -301,9 +319,13 @@ def mark_archived(prayer_id):
 def mark_prayed(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-
+    print('Found prayer: ' + str(prayer.title) + ".")
+    
     # Mark the prayer as prayed
-    prayer_history = PrayerHistory(prayer_id=prayer.id, date_prayed=current_utc_time)
+    prayer_history = PrayerHistory(prayer_id=prayer.id, user_id=current_user.id)
+
+    print("Created new prayer_history: " + str(prayer_history.id) + ".")
+
     db.session.add(prayer_history)
     db.session.commit()
 
@@ -314,9 +336,17 @@ def mark_prayed(prayer_id):
 @login_required
 def delete_prayer(prayer_id):
     prayer = Prayer.query.get_or_404(prayer_id)
+    
+    # Prevent editing of other users' prayers
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect('view_prayers')
+    
     db.session.delete(prayer)
     db.session.commit()
+
     flash('Item deleted.')
+
     return redirect(url_for('home'))
 
 @app.route('/')
@@ -426,7 +456,7 @@ def home():
 
         # Check whether a prayer has been prayed today
         if prayer.history:
-                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
+                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id,user_id=current_user.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
                 prayed_today = last_prayed_date == current_utc_time.date()
 
         # Add prayers to either the prayed today list 
@@ -437,7 +467,7 @@ def home():
         if remind_me_today and not prayer.archived and (not prayer.answered or within_seven_days):
             filtered_prayers.append(prayer)
 
-    return render_template('home.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id)
+    return render_template('home.html', firstname=firstname, lastname=lastname, prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id, page_name='home')
 
     
     
@@ -577,7 +607,7 @@ def friends_prayers():
     # Execute the query and retrieve the results
     friends_prayers = this_query.all()
 
-    return render_template('friends_prayers.html', prayers=friends_prayers)
+    return render_template('friends_prayers.html', prayers=friends_prayers,page_name='friends_prayers')
 
 
 if __name__ == '__main__':

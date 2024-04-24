@@ -39,7 +39,7 @@
         </select>
         <br>
         <br>
-
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit">Save Prayer</button>
         <a href="javascript:history.go(-1);" class="form-btn">Cancel</a>
         
