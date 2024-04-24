@@ -23,6 +23,7 @@
         <thead>
             <tr>
                 <th>Select</th>
+                <th>User</th>
                 <th>Title</th>
                 <th>Description</th>
                 <th>Tag</th>
@@ -45,16 +46,29 @@
                 {% endif %}
                 {% set row_class = row_class + "-row" %}
                 <tr class="{{ row_class }}">
-                    <td><input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}"></td>
+                    <td>
+                        {% if prayer.user.id == user_id %}
+                            <input type="checkbox" name="selectedPrayers" value="{{ prayer.id }}">
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if prayer.user.id == user_id %}
+                            Me
+                        {% else %}
+                            {{ prayer.user.firstname }} {{prayer.user.lastname}}
+                        {% endif %}
+                    </td>
                     <td>{{ prayer.title }}</td>
                     <td>{{ prayer.description }}</td>
                     <td>{{ prayer.tag.name }}</td>
                     <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
                     <td>{{ "Yes" if prayer in prayed_today_prayers else "No" }}</td>
                     <td>
-                        <!-- Edit button -->
-                        {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
-                        <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
+                        <!-- Edit button (don't display if it's not the user's prayer) -->
+                        {% if prayer.user.id == user_id %}
+                            {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
+                            <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
+                        {% endif %}
                     </td>
                 </tr>
 
