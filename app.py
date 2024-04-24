@@ -6,6 +6,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 import os
 from bcrypt import checkpw
 import bcrypt
+from sqlalchemy import and_, not_
 
 # Load environment variables from .env file
 load_dotenv()
@@ -373,19 +374,33 @@ def update_account():
 @app.route('/home', methods=['GET'])
 @login_required
 def home():
-
+    # Get the current user's information
     firstname = current_user.firstname
     lastname = current_user.lastname
 
-
+    # Get the current user's prayers
     user_prayers = Prayer.query.filter_by(user_id=current_user.id).all()
+
+    # Join Prayer, User and FriendRequest tables to get friends' prayers
+    friends_prayers_query = db.session.query(Prayer).join(User, Prayer.user_id == User.id)\
+        .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted'))\
+        .filter(Prayer.sharable == True).filter(not_(User.id == current_user.id))
+    
+    # Execute the query and retrieve the results
+    friends_prayers = friends_prayers_query.all()
+
+    # Combine the current user's prayers and friends' prayers
+    all_prayers = user_prayers + friends_prayers
+
+    # Sort the combined list based on the user, with the current user's prayers appearing first
+    all_prayers.sort(key=lambda x: (x.user_id != current_user.id, x.user_id))
 
     # Create empty lists
     filtered_prayers = []
     prayed_today_prayers = []
 
     # Filter the prayers to display as daily prayers
-    for prayer in user_prayers:
+    for prayer in all_prayers:
         # Set as boolean values
         within_seven_days = False
         prayed_today = False
@@ -422,7 +437,7 @@ def home():
         if remind_me_today and not prayer.archived and (not prayer.answered or within_seven_days):
             filtered_prayers.append(prayer)
 
-    return render_template('home.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers)
+    return render_template('home.html', firstname=firstname, lastname=lastname, filtered_prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id)
 
     
     
@@ -549,6 +564,20 @@ def cancel_or_unfriend(request_id):
     db.session.commit()
 
     return redirect(url_for('friends'))
+
+@app.route('/friends_prayers',methods=['POST', 'GET'])
+@login_required
+def friends_prayers():
+    # Join Prayer, User and FriendRequest tables
+    this_query = db.session.query(Prayer).join(User, Prayer.user_id == User.id).join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted'))
+
+    # Apply filters to select only sharable prayers and accepted friend requests
+    this_query = this_query.filter(Prayer.sharable == True).filter(not_(User.id == current_user.id))
+    
+    # Execute the query and retrieve the results
+    friends_prayers = this_query.all()
+
+    return render_template('friends_prayers.html', prayers=friends_prayers)
 
 
 if __name__ == '__main__':
