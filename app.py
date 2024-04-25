@@ -1,5 +1,5 @@
 from flask import  Flask, render_template, session, redirect, url_for, flash, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, pagination
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
@@ -245,10 +245,16 @@ def edit_prayer(prayer_id):
 @login_required
 def view_prayers():
     
+    # Retrieve all user's prayers
     user_id = current_user.id
-    user_prayers = Prayer.query.filter_by(user_id=user_id).all()
+    user_prayers_query = Prayer.query.filter_by(user_id=user_id)
 
-    return render_template('prayers.html', prayers = user_prayers, categories=prayer_categories, page_name='prayers')
+    # Separate the prayers into pages
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    paginated_prayers = user_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template('prayers.html', prayers = paginated_prayers, categories=prayer_categories, page_name='prayers', page=page)
 
 
 @app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
@@ -408,6 +414,16 @@ def home():
     firstname = current_user.firstname
     lastname = current_user.lastname
 
+    def paginate_list(items, page, per_page):
+        total_items = len(items)
+        start_index = (page - 1) * per_page
+        end_index = min(start_index + per_page, total_items)
+
+        if start_index >= total_items:
+            return []
+
+        return items[start_index:end_index]
+
     # Get the current user's prayers
     user_prayers = Prayer.query.filter_by(user_id=current_user.id).all()
 
@@ -467,7 +483,12 @@ def home():
         if remind_me_today and not prayer.archived and (not prayer.answered or within_seven_days):
             filtered_prayers.append(prayer)
 
-    return render_template('home.html', firstname=firstname, lastname=lastname, prayers = filtered_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id, page_name='home')
+        # Paginate prayers
+        page = request.args.get('page', 1, type=int)
+        per_page = 15
+        paginated_prayers = paginate_list(filtered_prayers, page, per_page)
+
+    return render_template('home.html', firstname=firstname, lastname=lastname, prayers = paginated_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id, page_name='home')
 
     
     
