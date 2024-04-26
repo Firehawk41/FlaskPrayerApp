@@ -28,7 +28,7 @@
         </tr>
     </thead>
     <tbody>
-        {% for prayer in prayers.items %}
+        {% for prayer in prayers %}
             {% set row_class = "unprayed" %}
                     
             {% if prayer in prayed_today_prayers %}
