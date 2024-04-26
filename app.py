@@ -28,6 +28,18 @@ db = SQLAlchemy(app)
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
 days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 
+# Function to paginate a list of prayers
+def paginate_list(items, page, per_page):
+    total_items = len(items)
+    print("Total items: " + str(total_items) + ".")
+    start_index = (page - 1) * per_page
+    end_index = min(start_index + per_page, total_items)
+
+    if start_index >= total_items:
+        return []
+
+    return items[start_index:end_index]
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstname = db.Column(db.String(100), nullable=False)
@@ -247,12 +259,15 @@ def view_prayers():
     
     # Retrieve all user's prayers
     user_id = current_user.id
-    user_prayers_query = Prayer.query.filter_by(user_id=user_id)
+    user_prayers_query = Prayer.query.filter_by(user_id=user_id).all()
 
-    # Separate the prayers into pages
+
+
+
+    # Paginate prayers
     page = request.args.get('page', 1, type=int)
     per_page = 15
-    paginated_prayers = user_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
+    paginated_prayers = paginate_list(user_prayers_query, page, per_page)
 
     return render_template('prayers.html', prayers = paginated_prayers, categories=prayer_categories, page_name='prayers', page=page)
 
@@ -414,15 +429,7 @@ def home():
     firstname = current_user.firstname
     lastname = current_user.lastname
 
-    def paginate_list(items, page, per_page):
-        total_items = len(items)
-        start_index = (page - 1) * per_page
-        end_index = min(start_index + per_page, total_items)
 
-        if start_index >= total_items:
-            return []
-
-        return items[start_index:end_index]
 
     # Get the current user's prayers
     user_prayers = Prayer.query.filter_by(user_id=current_user.id).all()
@@ -628,7 +635,12 @@ def friends_prayers():
     # Execute the query and retrieve the results
     friends_prayers = this_query.all()
 
-    return render_template('friends_prayers.html', prayers=friends_prayers,page_name='friends_prayers')
+    # Paginate prayers
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+    paginated_prayers = paginate_list(friends_prayers, page, per_page)
+
+    return render_template('friends_prayers.html', prayers=paginated_prayers, page_name='friends_prayers')
 
 
 if __name__ == '__main__':
