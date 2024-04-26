@@ -6,7 +6,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 import os
 from bcrypt import checkpw
 import bcrypt
-from sqlalchemy import and_, not_
+from sqlalchemy import and_, not_, or_, case, func, text, union
 from flask_wtf.csrf import CSRFProtect
 
 # Load environment variables from .env file
@@ -27,11 +27,13 @@ db = SQLAlchemy(app)
 # Define possible prayer tags
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
 days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+DEFAULT_PER_PAGE = 5
 
 # Function to paginate a list of prayers
-def paginate_list(items, page, per_page):
+def paginate_list(items, page, per_page=DEFAULT_PER_PAGE):
     total_items = len(items)
     print("Total items: " + str(total_items) + ".")
+
     start_index = (page - 1) * per_page
     end_index = min(start_index + per_page, total_items)
 
@@ -259,17 +261,17 @@ def view_prayers():
     
     # Retrieve all user's prayers
     user_id = current_user.id
-    user_prayers_query = Prayer.query.filter_by(user_id=user_id).all()
+    user_prayers_query = Prayer.query.filter_by(user_id=user_id)
 
 
 
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
-    per_page = 15
-    paginated_prayers = paginate_list(user_prayers_query, page, per_page)
+    per_page = DEFAULT_PER_PAGE
+    paginated_prayers = user_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
 
-    return render_template('prayers.html', prayers = paginated_prayers, categories=prayer_categories, page_name='prayers', page=page)
+    return render_template('prayers.html', prayers = paginated_prayers, categories=prayer_categories, page_name='view_prayers', page=page)
 
 
 @app.route('/mark_answered/<int:prayer_id>', methods=['POST'])
@@ -431,73 +433,29 @@ def home():
 
 
 
-    # Get the current user's prayers
-    user_prayers = Prayer.query.filter_by(user_id=current_user.id).all()
+    # Calculates the date seven days ago
+    seven_days_ago = current_utc_time - timedelta(days=7)
 
-    # Join Prayer, User and FriendRequest tables to get friends' prayers
-    friends_prayers_query = db.session.query(Prayer).join(User, Prayer.user_id == User.id)\
-        .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted'))\
-        .filter(Prayer.sharable == True).filter(not_(User.id == current_user.id))
+    # Get the current day in lower case
+    today = datetime.now().strftime("%A").lower()
     
-    # Execute the query and retrieve the results
-    friends_prayers = friends_prayers_query.all()
+    # Set the query
+    all_prayers_query = Prayer.query \
+        .join(User, Prayer.user_id == User.id) \
+        .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
+        .filter(or_(
+            and_(Prayer.user_id == current_user.id, or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), Prayer.reminder.like(f"%{today}%")),
+            and_(Prayer.sharable == True, not_(User.id == current_user.id))
+        )) \
+        .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
 
-    # Combine the current user's prayers and friends' prayers
-    all_prayers = user_prayers + friends_prayers
-
-    # Sort the combined list based on the user, with the current user's prayers appearing first
-    all_prayers.sort(key=lambda x: (x.user_id != current_user.id, x.user_id))
-
-    # Create empty lists
-    filtered_prayers = []
-    prayed_today_prayers = []
-
-    # Filter the prayers to display as daily prayers
-    for prayer in all_prayers:
-        # Set as boolean values
-        within_seven_days = False
-        prayed_today = False
-        remind_me_today = False
-
-        # Get the current day in lower case
-        today = datetime.now().strftime("%A").lower()
-        # Check whether this prayer is set to be prayed today
-        remind_days = prayer.reminder.split(",")
-        today_lower = today.lower()
-        remind_me_today = today_lower in map(str.lower, remind_days)
+    # Paginate the query
+    page = request.args.get('page', 1, type=int)
+    per_page = DEFAULT_PER_PAGE
+    paginated_query = all_prayers_query.paginate(page=page, per_page=5, error_out=True)
 
 
-        # Update prayer description for answered prayers
-        if prayer.answered:
-            prayer.description = f"Thank you for answering my prayer for {prayer.title}."
-
-        # Check whether a prayer has been answered more than 7 days ago
-        if prayer.answered_at:
-            answered_at = prayer.answered_at.replace(tzinfo=timezone.utc)
-            time_difference = current_utc_time - answered_at
-            within_seven_days = time_difference <= timedelta(days=7)
-
-        # Check whether a prayer has been prayed today
-        if prayer.history:
-                last_prayed_date = PrayerHistory.query.filter_by(prayer_id=prayer.id,user_id=current_user.id).order_by(PrayerHistory.date_prayed.desc()).first().date_prayed.date()
-                prayed_today = last_prayed_date == current_utc_time.date()
-
-        # Add prayers to either the prayed today list 
-        if prayed_today:
-            prayed_today_prayers.append(prayer)        
-        
-        # Add prayers to the filter prayer list
-        if remind_me_today and not prayer.archived and (not prayer.answered or within_seven_days):
-            filtered_prayers.append(prayer)
-
-        # Paginate prayers
-        page = request.args.get('page', 1, type=int)
-        per_page = 15
-        paginated_prayers = paginate_list(filtered_prayers, page, per_page)
-
-    return render_template('home.html', firstname=firstname, lastname=lastname, prayers = paginated_prayers, prayed_today_prayers=prayed_today_prayers, user_id = current_user.id, page_name='home')
-
-    
+    return render_template('home.html', firstname=firstname, lastname=lastname, prayers=paginated_query, user_id = current_user.id, today=current_utc_time, page_name='home')
     
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -627,18 +585,15 @@ def cancel_or_unfriend(request_id):
 @login_required
 def friends_prayers():
     # Join Prayer, User and FriendRequest tables
-    this_query = db.session.query(Prayer).join(User, Prayer.user_id == User.id).join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted'))
-
-    # Apply filters to select only sharable prayers and accepted friend requests
-    this_query = this_query.filter(Prayer.sharable == True).filter(not_(User.id == current_user.id))
-    
-    # Execute the query and retrieve the results
-    friends_prayers = this_query.all()
+    friends_prayers_query = db.session.query(Prayer) \
+        .join(User, Prayer.user_id == User.id) \
+        .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
+        .filter(Prayer.sharable == True).filter(not_(User.id == current_user.id))
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
-    per_page = 15
-    paginated_prayers = paginate_list(friends_prayers, page, per_page)
+    per_page = DEFAULT_PER_PAGE
+    paginated_prayers = friends_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
 
     return render_template('friends_prayers.html', prayers=paginated_prayers, page_name='friends_prayers')
 
