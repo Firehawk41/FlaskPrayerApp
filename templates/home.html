@@ -9,7 +9,84 @@
     </div>
     <h1>Daily Prayers</h1>
 
-    {% include 'common_prayer_tables.html' %}
+    <table class="prayer-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Tag</th>
+                <th>Status</th>
+
+                    <th>Submitted By</th>
+
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prayer in prayers.items %}
+                {% set row_class = "unprayed" %}
+                        
+                {% if prayer in prayed_today_prayers %}
+                    {% set row_class = "prayed" %}
+                {% endif %}
+                {% if prayer.answered %}
+                    {% set row_class = row_class + "-answered" %}
+                {% endif %}
+                {% set row_class = row_class + "-row" %}
+                <tr class="{{ row_class }}">
+                    <td>{{ prayer.title }}</td>
+                    <td>
+                        {% if prayer.answered %}
+                            Thank you for answering prayers regarding {{ prayer.title }}.
+                        {% else %}
+                            {{ prayer.description }}
+                        {% endif %}
+                    </td>
+                    <td>{{ prayer.tag.name }}</td>
+                    <td>{{ "Answered" if prayer.answered else "Pending" }}</td>
+
+                    <td>
+                        {% if prayer.user.id == current_user.id %}
+                            Me
+                        {% else %}
+                            {{ prayer.user.firstname }} {{ prayer.user.lastname }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+
+                        <!-- Mark as Prayed button-->
+                        {% set markPrayedUrl = url_for('mark_prayed', prayer_id=prayer.id, prev_url=request.url) %}
+                        <form action="{{ markPrayedUrl }}" method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="edit-btn" {% if prayer in prayed_today_prayers %}disabled{% endif %}>Mark Prayed</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     
+    <div class="pagination">
+        {% if prayers.has_prev %}
+            <a href="{{ url_for('home', page=prayers.prev_num) }}">Previous</a>
+        {% endif %}
+        {% if prayers.has_prev or prayers.has_next %}
+            {% for page_num in prayers.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == prayers.page %}
+                        <strong>{{ page_num }}</strong>
+                    {% else %}
+                        <a href="{{ url_for('home', page=page_num) }}">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    ...
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if prayers.has_next %}
+            <a href="{{ url_for('home', page=prayers.next_num) }}">Next</a>
+        {% endif %}
+    </div>
 {% endblock %}
 

@@ -29,19 +29,6 @@ prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession
 days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 DEFAULT_PER_PAGE = 5
 
-# Function to paginate a list of prayers
-def paginate_list(items, page, per_page=DEFAULT_PER_PAGE):
-    total_items = len(items)
-    print("Total items: " + str(total_items) + ".")
-
-    start_index = (page - 1) * per_page
-    end_index = min(start_index + per_page, total_items)
-
-    if start_index >= total_items:
-        return []
-
-    return items[start_index:end_index]
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstname = db.Column(db.String(100), nullable=False)
@@ -268,8 +255,7 @@ def view_prayers():
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
-    per_page = DEFAULT_PER_PAGE
-    paginated_prayers = user_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
+    paginated_prayers = user_prayers_query.paginate(page=page, per_page=DEFAULT_PER_PAGE, error_out=False)
 
     return render_template('prayers.html', prayers = paginated_prayers, categories=prayer_categories, page_name='view_prayers', page=page)
 
@@ -431,8 +417,6 @@ def home():
     firstname = current_user.firstname
     lastname = current_user.lastname
 
-
-
     # Calculates the date seven days ago
     seven_days_ago = current_utc_time - timedelta(days=7)
 
@@ -451,9 +435,15 @@ def home():
 
     # Paginate the query
     page = request.args.get('page', 1, type=int)
-    per_page = DEFAULT_PER_PAGE
-    paginated_query = all_prayers_query.paginate(page=page, per_page=5, error_out=True)
+    paginated_query = all_prayers_query.paginate(page=page, per_page=DEFAULT_PER_PAGE, error_out=True)
 
+    for prayer in all_prayers_query.all():
+        print(prayer.title)
+
+    print("Page: " + str(paginated_query.page))
+    print("Per Page: " + str(paginated_query.per_page))
+    print("Total: " + str(paginated_query.total))
+    print("Pages: " + str(paginated_query.pages))
 
     return render_template('home.html', firstname=firstname, lastname=lastname, prayers=paginated_query, user_id = current_user.id, today=current_utc_time, page_name='home')
     
@@ -592,8 +582,7 @@ def friends_prayers():
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
-    per_page = DEFAULT_PER_PAGE
-    paginated_prayers = friends_prayers_query.paginate(page=page, per_page=per_page, error_out=False)
+    paginated_prayers = friends_prayers_query.paginate(page=page, per_page=DEFAULT_PER_PAGE, error_out=False)
 
     return render_template('friends_prayers.html', prayers=paginated_prayers, page_name='friends_prayers')
 
