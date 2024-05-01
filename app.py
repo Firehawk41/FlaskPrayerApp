@@ -1,13 +1,17 @@
 from flask import  Flask, render_template, session, redirect, url_for, flash, request, jsonify
 from flask_sqlalchemy import SQLAlchemy, pagination
 from dotenv import load_dotenv
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone as dt_timezone, timedelta
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 import os
 from bcrypt import checkpw
 import bcrypt
 from sqlalchemy import and_, not_, or_, case, func, text, union
 from flask_wtf.csrf import CSRFProtect
+from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets
+from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange
+from pytz import common_timezones, timezone
+from flask_wtf import FlaskForm
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,8 +23,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI'
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
-# Get currecnt UTC time
-current_utc_time = datetime.now(timezone.utc)
+# Get current UTC time
+current_utc_time = datetime.now(dt_timezone.utc)
 
 db = SQLAlchemy(app)
 
@@ -29,12 +33,36 @@ prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession
 days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 DEFAULT_PER_PAGE = 5
 
+class AccountSettingsForm(FlaskForm):
+    firstname = StringField('First Name', validators=[DataRequired(), Length(max=100)])
+    lastname = StringField('Last Name', validators=[DataRequired(), Length(max=100)])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=100)])
+    timezone = SelectField('Timezone', choices=[(tz, tz) for tz in common_timezones], validators=[Length(max=100)])
+    thankfulness_length = IntegerField('Number of days to remember an answered prayer', validators=[DataRequired(), NumberRange(min=0, max=99)])
+
+class AddPrayerForm(FlaskForm):
+    title = StringField('Title', validators=[InputRequired()])
+    description = StringField('Description', validators=[InputRequired(), Length(max=256)])
+    tag = SelectField('Tag', coerce=int, validators=[InputRequired()], choices=[(i, category) for i, category in enumerate(prayer_categories)])
+    sunday = BooleanField('Sunday')
+    monday = BooleanField('Monday')
+    tuesday = BooleanField('Tuesday')
+    wednesday = BooleanField('Wednesday')
+    thursday = BooleanField('Thursday')
+    friday = BooleanField('Friday')
+    saturday = BooleanField('Saturday')
+    sharable = SelectField('Share with friends?', choices=[('False', 'Private'), ('True', 'Sharable')])
+
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     firstname = db.Column(db.String(100), nullable=False)
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique = True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
+    timezone = db.Column(db.String(64), nullable=False, default='America/Chicago')
+    thankfulness_length = db.Column(db.Integer, nullable=False,default=7)
 
     history = db.relationship('PrayerHistory', back_populates='user')
 
@@ -57,14 +85,20 @@ class Prayer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(100),nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.String(256), nullable=False)
     answered = db.Column(db.Boolean, default=False)
     archived = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=current_utc_time)
     last_modified = db.Column(db.DateTime, default=current_utc_time, onupdate=current_utc_time)
     answered_at = db.Column(db.DateTime)
     tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), nullable=False)
-    reminder = db.Column(db.String(60),default=("Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"))
+    sunday = db.Column(db.Boolean, default=True)
+    monday = db.Column(db.Boolean, default=True)
+    tuesday = db.Column(db.Boolean, default=True)
+    wednesday = db.Column(db.Boolean, default=True)
+    thursday = db.Column(db.Boolean, default=True)
+    friday = db.Column(db.Boolean, default=True)
+    saturday = db.Column(db.Boolean, default=True)
     sharable = db.Column(db.Boolean, default=False)
     
 
@@ -135,60 +169,96 @@ def load_user(user_id):
 @login_required
 def add_prayer():
 
+    form = AddPrayerForm()
 
-    if request.method == 'POST':
-        # Extract data from the form submission
-        title = request.form.get('title')
-        description = request.form.get('description')
-        tag_name = request.form.get('tag')
+    # Set all reminder_days as selected by default
+    for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
+        getattr(form, field_name).data = True
+
+    if form.validate_on_submit():
+        # Extract data from the validating form
+        title = form.title.data
+        description = form.description.data
+        tag_name = form.tag.label.text
+        sharable = True if form.sharable.data == 'True' else False
+        tag_id = get_or_create_tag_id(tag_name)
         
-        print(title)
-        print(description)
-        print(tag_name)
-
-        if not title or not description or not tag_name:
-            return jsonify({'error': 'Title, description and tag are required'}), 400
-
-        # Add reminder days to prayer
-        reminder_days = request.form.getlist('reminderDays')
-        reminder_days_str = ",".join(reminder_days)
-
-        # Add tag to the prayer
-        existing_tag = Tag.query.filter_by(name=tag_name).first()
-        if not existing_tag:
-            # If the tag doesn't exist, create a new one
-            new_tag = Tag(name=tag_name)
-            db.session.add(new_tag)
-            db.session.commit()
-        else:
-            new_tag = existing_tag
-
-        # Add sharable status
-        sharable = False
-        sharable_str = request.form.get('sharable', 'False')
-        print("Share status is: " + str(sharable_str) + ".")
-        if sharable_str == "shared":
-            sharable = True
-        
-
-        # Create new Prayer object
-        new_prayer = Prayer(title=title, description=description, user_id=current_user.id, sharable=sharable, tag=new_tag,reminder=reminder_days_str)
-
-        # Add new prayer to database and save changes
+        # Add new Prayer object and commit changes
+        new_prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id,sunday=form.sunday.data, monday=form.monday.data, 
+                            tuesday=form.tuesday.data, wednesday=form.wednesday.data,thursday=form.thursday.data,friday=form.friday.data,saturday=form.saturday.data,
+                            sharable = sharable)
         db.session.add(new_prayer)
         db.session.commit()
-        
-        jsonify({'message': 'Prayer added successfully'}), 200
+
+        # Flash success notification and redirect home
+        flash('Prayer added successfully.', 'success')
         return redirect(url_for('home'))
+    
+    return render_template('add_prayer.html', form=form, page_name='add_prayer')
 
-
-
-    return render_template('add_prayer.html', categories=prayer_categories, days_of_week=days_of_week)
-
+def get_or_create_tag_id(tag_name):
+    # Add tag to the prayer
+    existing_tag = Tag.query.filter_by(name=tag_name).first()
+    if not existing_tag:
+        # If the tag doesn't exist, create a new one
+        new_tag = Tag(name=tag_name)
+        db.session.add(new_tag)
+        db.session.commit()
+        return new_tag.id
+    else:
+        return existing_tag.id
 
 @app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
 @login_required
 def edit_prayer(prayer_id):
+    
+    form = AddPrayerForm()
+
+    # Retrieve the prayer from the database
+    prayer = Prayer.query.get_or_404(prayer_id)
+    tag_name = request.form.get('tag')
+
+    if prayer.user.id != current_user.id:
+        flash("You cannot edit another user's prayer.", "error")
+        return redirect(home)
+    
+    # Find the index of the tag name in the list of choices
+    tag_index = next((i for i, name in enumerate(prayer_categories) if name == prayer.tag.name), None)
+
+    print("current prayer name: " + str(prayer.tag.name))
+    print("tag data: " + str(form.tag.data))
+    form.title.data = prayer.title
+    form.description.data = prayer.description
+    
+    
+    form.tag.data = tag_index
+    form.sharable.text = 'Sharable' if prayer.sharable == True else 'Private'
+
+
+    # Set all reminder_days as selected by default
+    for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
+        getattr(form, field_name).data = getattr(prayer, field_name)
+
+    if form.validate_on_submit():
+        # Extract data from the validating form
+        title = form.title.data
+        description = form.description.data
+        tag_name = form.tag.label.text
+        sharable = True if form.sharable.data == 'True' else False
+        tag_id = get_or_create_tag_id(tag_name)
+        
+        # Add new Prayer object and commit changes
+        new_prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id,sunday=form.sunday.data, monday=form.monday.data, 
+                            tuesday=form.tuesday.data, wednesday=form.wednesday.data,thursday=form.thursday.data,friday=form.friday.data,saturday=form.saturday.data,
+                            sharable = sharable)
+        db.session.add(new_prayer)
+        db.session.commit()
+
+        # Flash success notification and redirect home
+        flash('Prayer editted successfully.', 'success')
+        return redirect(url_for('home'))
+    
+    return render_template('add_prayer.html', form=form, page_name='edit_prayer')
 
     prev_url = request.args.get('prev_url', '/')
 
@@ -395,11 +465,39 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/account_settings')
+@app.route('/account_settings', methods=['POST', 'GET'])
 @login_required
 def account_settings():
+
+    # Instantiate the form
+    form = AccountSettingsForm()
+
+    # Populate the form fields with the current user's data
+    form.firstname.data = current_user.firstname
+    form.lastname.data = current_user.lastname
+    form.email.data = current_user.email
+    form.timezone.data = current_user.timezone
+    form.thankfulness_length.data = current_user.thankfulness_length
+
+    if form.validate_on_submit():
+        # Update the current user's data with the form data
+        current_user.firstname = form.firstname.data
+        current_user.lastname = form.lastname.data
+        current_user.email = form.email.data
+        current_user.timezone = form.timezone.data
+        current_user.thankfulness_length = form.thankfulness_length.data
+
+        # Commit changes to the database
+        db.session.commit()
+
+        # Flash success message
+        flash('Account settings updated successfully.', 'success')
+
+        # Redirect back to the account settings page
+        return redirect(url_for('account_settings'))
     
-    return render_template('account_settings.html')
+    # Render the template with the form
+    return render_template('account_settings.html', form=form)
 
 
 @app.route('/update_account', methods=['POST'])
@@ -421,31 +519,50 @@ def home():
     seven_days_ago = current_utc_time - timedelta(days=7)
 
     # Get the current day in lower case
-    today = datetime.now().strftime("%A").lower()
-    
+    today = datetime.now().weekday()
+
+    # Define a dictionary mapping integers to day attributes
+    day_attributes = {
+        0: 'sunday',
+        1: 'monday',
+        2: 'tuesday',
+        3: 'wednesday',
+        4: 'thursday',
+        5: 'friday',
+        6: 'saturday'
+    }
+
+    # Construct the attribute name dynamically using the dictionary
+    attribute_name = day_attributes.get(today)
+    print(getattr(Prayer, attribute_name))
     # Set the query
-    all_prayers_query = Prayer.query \
+    all_prayers_query = Prayer.query.distinct() \
         .join(User, Prayer.user_id == User.id) \
         .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
-        .filter(or_(
-            and_(Prayer.user_id == current_user.id, or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), Prayer.reminder.like(f"%{today}%")),
-            and_(Prayer.sharable == True, not_(User.id == current_user.id))
-        )) \
+        .filter(and_(or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), getattr(Prayer, attribute_name).is_(True),
+            or_(User.id == current_user.id, and_(Prayer.sharable == True, User.id != current_user.id)))) \
         .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
+
+    # Get the user's timezone
+    user_timezone = timezone(current_user.timezone)
+
+    # Get today's date in the user's timezone
+    today_user_timezone = datetime.now(user_timezone).date()
+
+    # Check if each prayer in the history was prayed today
+    prayed_today_prayers = []
+    for prayer in all_prayers_query.all():
+        if prayer.history:
+            # Convert the timestamp in the prayer history to the user's timezone
+            prayed_at_user_timezone = prayer.history[-1].date_prayed.astimezone(user_timezone).date()
+            if prayed_at_user_timezone == today_user_timezone:
+                prayed_today_prayers.append(prayer)
 
     # Paginate the query
     page = request.args.get('page', 1, type=int)
     paginated_query = all_prayers_query.paginate(page=page, per_page=DEFAULT_PER_PAGE, error_out=True)
 
-    for prayer in all_prayers_query.all():
-        print(prayer.title)
-
-    print("Page: " + str(paginated_query.page))
-    print("Per Page: " + str(paginated_query.per_page))
-    print("Total: " + str(paginated_query.total))
-    print("Pages: " + str(paginated_query.pages))
-
-    return render_template('home.html', firstname=firstname, lastname=lastname, prayers=paginated_query, user_id = current_user.id, today=current_utc_time, page_name='home')
+    return render_template('home.html', firstname=firstname, lastname=lastname, prayers=paginated_query, user_id = current_user.id, prayed_today_prayers=prayed_today_prayers, page_name='home')
     
 
 @app.route('/signup', methods=['GET', 'POST'])
