@@ -71,7 +71,7 @@
                         </form>
                     {% elif page_name == 'view_prayers' %}
                         <!-- Edit button -->
-                        {% set editUrl = url_for('edit_prayer', prayer_id=prayer.id, prev_url=request.url) %}
+                        {% set editUrl = url_for('add_or_edit_prayer', prayer_id=prayer.id) %}
                         <button onclick="window.location.href='{{ editUrl }}';" class="edit-btn">Edit</button>
                     {% endif %}
                 </td>

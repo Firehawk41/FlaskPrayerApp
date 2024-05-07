@@ -1,0 +1,63 @@
+2024-05-07 09:40:20,437 - WARNING -  * Debugger is active!
+2024-05-07 09:40:20,440 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:18:22,934 - INFO -  * Detected change in 'C:\\Users\\Jamie\\Documents\\Coding\\FlaskApp\\FlaskPrayerApp\\app.py', reloading
+2024-05-07 10:18:23,626 - WARNING -  * Debugger is active!
+2024-05-07 10:18:23,629 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:19:07,433 - INFO -  * Detected change in 'C:\\Users\\Jamie\\Documents\\Coding\\FlaskApp\\FlaskPrayerApp\\app.py', reloading
+2024-05-07 10:19:08,101 - WARNING -  * Debugger is active!
+2024-05-07 10:19:08,101 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:19:28,288 - INFO - User logged out.
+2024-05-07 10:19:28,288 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "[32mGET /logout HTTP/1.1[0m" 302 -
+2024-05-07 10:19:28,305 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2024-05-07 10:19:28,389 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "GET /?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+2024-05-07 10:19:28,389 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "GET /?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+2024-05-07 10:19:28,428 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "GET /?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+2024-05-07 10:19:28,436 - INFO - 127.0.0.1 - - [07/May/2024 10:19:28] "[36mGET /?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1[0m" 304 -
+2024-05-07 10:21:41,872 - INFO -  * Detected change in 'C:\\Users\\Jamie\\Documents\\Coding\\FlaskApp\\FlaskPrayerApp\\app.py', reloading
+2024-05-07 10:21:42,625 - WARNING -  * Debugger is active!
+2024-05-07 10:21:42,628 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:21:43,009 - INFO - 127.0.0.1 - - [07/May/2024 10:21:43] "[32mGET / HTTP/1.1[0m" 302 -
+2024-05-07 10:21:43,024 - INFO - 127.0.0.1 - - [07/May/2024 10:21:43] "GET /login HTTP/1.1" 200 -
+2024-05-07 10:21:43,064 - INFO - 127.0.0.1 - - [07/May/2024 10:21:43] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:21:56,823 - INFO - 127.0.0.1 - - [07/May/2024 10:21:56] "GET /login HTTP/1.1" 200 -
+2024-05-07 10:21:56,836 - INFO - 127.0.0.1 - - [07/May/2024 10:21:56] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:22:04,740 - INFO - Login successful.
+2024-05-07 10:22:04,740 - INFO - 127.0.0.1 - - [07/May/2024 10:22:04] "[32mPOST /login HTTP/1.1[0m" 302 -
+2024-05-07 10:22:04,771 - INFO - 127.0.0.1 - - [07/May/2024 10:22:04] "GET /home HTTP/1.1" 200 -
+2024-05-07 10:22:04,785 - INFO - 127.0.0.1 - - [07/May/2024 10:22:04] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:22:15,065 - INFO - User logged out.
+2024-05-07 10:22:15,069 - INFO - 127.0.0.1 - - [07/May/2024 10:22:15] "[32mGET /logout HTTP/1.1[0m" 302 -
+2024-05-07 10:22:15,072 - INFO - 127.0.0.1 - - [07/May/2024 10:22:15] "[32mGET / HTTP/1.1[0m" 302 -
+2024-05-07 10:22:15,085 - INFO - 127.0.0.1 - - [07/May/2024 10:22:15] "GET /login HTTP/1.1" 200 -
+2024-05-07 10:22:15,098 - INFO - 127.0.0.1 - - [07/May/2024 10:22:15] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:23:06,106 - INFO - Login successful.
+2024-05-07 10:23:06,106 - INFO - 127.0.0.1 - - [07/May/2024 10:23:06] "[32mPOST /login HTTP/1.1[0m" 302 -
+2024-05-07 10:23:06,123 - INFO - 127.0.0.1 - - [07/May/2024 10:23:06] "GET /home HTTP/1.1" 200 -
+2024-05-07 10:23:06,136 - INFO - 127.0.0.1 - - [07/May/2024 10:23:06] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:25:50,316 - INFO -  * Detected change in 'C:\\Users\\Jamie\\Documents\\Coding\\FlaskApp\\FlaskPrayerApp\\app.py', reloading
+2024-05-07 10:26:09,692 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-05-07 10:26:09,707 - INFO - [33mPress CTRL+C to quit[0m
+2024-05-07 10:26:09,715 - INFO -  * Restarting with stat
+2024-05-07 10:26:10,298 - WARNING -  * Debugger is active!
+2024-05-07 10:26:10,318 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:26:36,831 - INFO -  * Detected change in 'C:\\Users\\Jamie\\Documents\\Coding\\FlaskApp\\FlaskPrayerApp\\app.py', reloading
+2024-05-07 10:26:36,916 - INFO -  * Restarting with stat
+2024-05-07 10:26:37,552 - WARNING -  * Debugger is active!
+2024-05-07 10:26:37,552 - INFO -  * Debugger PIN: 566-823-227
+2024-05-07 10:26:51,887 - INFO - Adding new prayer.
+2024-05-07 10:26:51,898 - INFO - 127.0.0.1 - - [07/May/2024 10:26:51] "GET /add_or_edit_prayer/0 HTTP/1.1" 200 -
+2024-05-07 10:26:51,950 - INFO - 127.0.0.1 - - [07/May/2024 10:26:51] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:26:56,301 - INFO - Retrieving user's tags.
+2024-05-07 10:26:56,322 - INFO - 127.0.0.1 - - [07/May/2024 10:26:56] "GET /prayers HTTP/1.1" 200 -
+2024-05-07 10:26:56,336 - INFO - 127.0.0.1 - - [07/May/2024 10:26:56] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:26:56,337 - INFO - 127.0.0.1 - - [07/May/2024 10:26:56] "[36mGET /static/js/prayerActions.js HTTP/1.1[0m" 304 -
+2024-05-07 10:26:59,571 - INFO - 127.0.0.1 - - [07/May/2024 10:26:59] "GET /friends_prayers HTTP/1.1" 200 -
+2024-05-07 10:26:59,583 - INFO - 127.0.0.1 - - [07/May/2024 10:26:59] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:27:01,126 - INFO - 127.0.0.1 - - [07/May/2024 10:27:01] "GET /friends HTTP/1.1" 200 -
+2024-05-07 10:27:01,139 - INFO - 127.0.0.1 - - [07/May/2024 10:27:01] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:27:03,555 - INFO - 127.0.0.1 - - [07/May/2024 10:27:03] "GET /account_settings HTTP/1.1" 200 -
+2024-05-07 10:27:03,570 - INFO - 127.0.0.1 - - [07/May/2024 10:27:03] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2024-05-07 10:27:09,932 - INFO - 127.0.0.1 - - [07/May/2024 10:27:09] "[32mGET / HTTP/1.1[0m" 302 -
+2024-05-07 10:27:09,950 - INFO - 127.0.0.1 - - [07/May/2024 10:27:09] "GET /home HTTP/1.1" 200 -
+2024-05-07 10:27:09,961 - INFO - 127.0.0.1 - - [07/May/2024 10:27:09] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -

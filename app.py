@@ -8,10 +8,11 @@ from bcrypt import checkpw
 import bcrypt
 from sqlalchemy import and_, not_, or_, case, func, text, union
 from flask_wtf.csrf import CSRFProtect
-from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets
-from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange
+from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets, PasswordField
+from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange, EqualTo
 from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,6 +24,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI'
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
+# Configure logging
+logging.basicConfig(filename='app.log',level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logging.getLogger().addHandler(console_handler)
+
 # Get current UTC time
 current_utc_time = datetime.now(dt_timezone.utc)
 
@@ -31,12 +40,18 @@ db = SQLAlchemy(app)
 # Define possible prayer tags
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
 days_of_week=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
-DEFAULT_PER_PAGE = 5
+DEFAULT_PER_PAGE = 15
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
 
 class AccountSettingsForm(FlaskForm):
     firstname = StringField('First Name', validators=[DataRequired(), Length(max=100)])
     lastname = StringField('Last Name', validators=[DataRequired(), Length(max=100)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=100)])
+    password1 = PasswordField('Password', validators=[DataRequired(), Length(min=3, max=20)])
+    password2 = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password1', message='Passwords must match')])
     timezone = SelectField('Timezone', choices=[(tz, tz) for tz in common_timezones], validators=[Length(max=100)])
     thankfulness_length = IntegerField('Number of days to remember an answered prayer', validators=[DataRequired(), NumberRange(min=0, max=99)])
 
@@ -107,7 +122,6 @@ class Prayer(db.Model):
 
     history = db.relationship('PrayerHistory', back_populates='prayer', cascade='all, delete-orphan')
 
-    answered_prayer = db.relationship('AnsweredPrayer', back_populates='original_prayer', uselist = False, cascade='all, delete-orphan')
 
     
     def move_to_schedule(self):
@@ -116,14 +130,7 @@ class Prayer(db.Model):
         self.next_pray_date = next_pray_date
         db.session.commit()
 
-class AnsweredPrayer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    original_prayer_id = db.Column(db.Integer, db.ForeignKey('prayer.id'),nullable = False)
-    content = db.Column(db.Text,nullable = False)
-    created_at = db.Column(db.DateTime, default=current_utc_time)
 
-
-    original_prayer = db.relationship('Prayer', back_populates='answered_prayer')
 
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -163,154 +170,87 @@ def load_user(user_id):
     #return User.query.get(int(user_id))
     return db.session.get(User,int(user_id))
 
-    
-
-@app.route('/add_prayer', methods=['POST', 'GET'])
+@app.route('/add_or_edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
 @login_required
-def add_prayer():
+def add_or_edit_prayer(prayer_id=0):
+    # Check if editing an existing prayer or adding a new one
+    if prayer_id != 0:
+        # Retrieve the prayer from the database
+        logging.info(f'Retrieving prayer to edit. Prayer ID: {prayer_id}')
+        prayer = Prayer.query.get_or_404(prayer_id)
+        tag_name = prayer.tag.name
+        form = AddPrayerForm(obj=prayer)
 
-    form = AddPrayerForm()
+        if request.method == "GET":
+            tag_index = next((i for i, name in enumerate(prayer_categories) if name == tag_name), None)
+            form.tag.data = tag_index
 
-    # Set all reminder_days as selected by default
-    for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
-        getattr(form, field_name).data = True
+        # Prevent users from editing others' prayers
+        if prayer.user.id != current_user.id:
+            flash("You cannot edit another user's prayer.", "error")
+            logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+            return redirect(home)
+    else:
+        prayer = None
+        form = AddPrayerForm()
+        logging.info('Adding new prayer.')
+
+        # Set all reminder_days as selected by default
+        for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
+            getattr(form, field_name).data = True
 
     if form.validate_on_submit():
-        # Extract data from the validating form
+        # Extract data from the form
         title = form.title.data
         description = form.description.data
-        tag_name = form.tag.label.text
-        sharable = True if form.sharable.data == 'True' else False
+        tag_name = dict(form.tag.choices).get(form.tag.data)
         tag_id = get_or_create_tag_id(tag_name)
-        
-        # Add new Prayer object and commit changes
-        new_prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id,sunday=form.sunday.data, monday=form.monday.data, 
-                            tuesday=form.tuesday.data, wednesday=form.wednesday.data,thursday=form.thursday.data,friday=form.friday.data,saturday=form.saturday.data,
-                            sharable = sharable)
-        db.session.add(new_prayer)
-        db.session.commit()
+        sharable = True if form.sharable.data == 'True' else False
 
-        # Flash success notification and redirect home
-        flash('Prayer added successfully.', 'success')
-        return redirect(url_for('home'))
-    
-    return render_template('add_prayer.html', form=form, page_name='add_prayer')
+        # Create or update the prayer object
+        if prayer_id != 0:
+            logging.info(f'Editing existing prayer. Prayer ID: {prayer_id}')
+            prayer.title = title
+            prayer.description = description
+            prayer.tag_id = tag_id
+            prayer.sharable = sharable
+            for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
+                setattr(prayer, field_name, getattr(form, field_name).data)
+        else:
+            logging.info('Creating new prayer.')
+            prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id, 
+                            sunday=form.sunday.data, monday=form.monday.data, tuesday=form.tuesday.data, 
+                            wednesday=form.wednesday.data, thursday=form.thursday.data, friday=form.friday.data, 
+                            saturday=form.saturday.data, sharable=sharable)
+            db.session.add(prayer)
+
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            logging.info('Prayer saved successfully.')
+            flash('Prayer added successfully.' if prayer_id == 0 else 'Prayer edited successfully.', 'success')
+            return redirect(url_for('home'))
+        except Exception as e:
+            logging.error(f'Failed to save prayer. Error: {str(e)}')
+            flash('An error occurred while saving the prayer.  Please try again later.', 'error')
+
+    return render_template('add_or_edit_prayer.html', form=form, edit_mode=bool(prayer_id!=0), prayer=prayer)
 
 def get_or_create_tag_id(tag_name):
     # Add tag to the prayer
+    
     existing_tag = Tag.query.filter_by(name=tag_name).first()
     if not existing_tag:
         # If the tag doesn't exist, create a new one
+        logging.info(f'Creating new tag: {tag_name}')
         new_tag = Tag(name=tag_name)
         db.session.add(new_tag)
         db.session.commit()
+        logging.info('Tag added successfully.')
         return new_tag.id
     else:
+        logging.info(f'Getting tag: {tag_name}')
         return existing_tag.id
-
-@app.route('/edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
-@login_required
-def edit_prayer(prayer_id):
-    
-    form = AddPrayerForm()
-
-    # Retrieve the prayer from the database
-    prayer = Prayer.query.get_or_404(prayer_id)
-    tag_name = request.form.get('tag')
-
-    if prayer.user.id != current_user.id:
-        flash("You cannot edit another user's prayer.", "error")
-        return redirect(home)
-    
-    # Find the index of the tag name in the list of choices
-    tag_index = next((i for i, name in enumerate(prayer_categories) if name == prayer.tag.name), None)
-
-    print("current prayer name: " + str(prayer.tag.name))
-    print("tag data: " + str(form.tag.data))
-    form.title.data = prayer.title
-    form.description.data = prayer.description
-    
-    
-    form.tag.data = tag_index
-    form.sharable.text = 'Sharable' if prayer.sharable == True else 'Private'
-
-
-    # Set all reminder_days as selected by default
-    for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
-        getattr(form, field_name).data = getattr(prayer, field_name)
-
-    if form.validate_on_submit():
-        # Extract data from the validating form
-        title = form.title.data
-        description = form.description.data
-        tag_name = form.tag.label.text
-        sharable = True if form.sharable.data == 'True' else False
-        tag_id = get_or_create_tag_id(tag_name)
-        
-        # Add new Prayer object and commit changes
-        new_prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id,sunday=form.sunday.data, monday=form.monday.data, 
-                            tuesday=form.tuesday.data, wednesday=form.wednesday.data,thursday=form.thursday.data,friday=form.friday.data,saturday=form.saturday.data,
-                            sharable = sharable)
-        db.session.add(new_prayer)
-        db.session.commit()
-
-        # Flash success notification and redirect home
-        flash('Prayer editted successfully.', 'success')
-        return redirect(url_for('home'))
-    
-    return render_template('add_prayer.html', form=form, page_name='edit_prayer')
-
-    prev_url = request.args.get('prev_url', '/')
-
-    # Retrieve the prayer from the database
-    prayer = Prayer.query.get_or_404(prayer_id)
-    tag_name = request.form.get('tag')
-
-    if prayer.user.id != current_user.id:
-        flash("You cannot edit another user's prayer.", "error")
-        return redirect(prev_url)
-
-    if request.method == 'POST':
-        # Update prayer details based on form submission
-        prayer.title = request.form['title']
-        prayer.description = request.form['description']
-
-        # Update reminder days to prayer
-        reminder_days = request.form.getlist('reminderDays')
-        prayer.reminder = ",".join(reminder_days)
-
-        # Add tag to the prayer
-        existing_tag = Tag.query.filter_by(name=tag_name).first()
-        if not existing_tag:
-            new_tag = Tag(name=tag_name)
-            db.session.add(new_tag)
-            db.session.commit()
-        else:
-            new_tag = existing_tag
-
-        prayer.tag = new_tag
-
-        # Update the prayer status
-        if request.form['status'] == "answered":
-            prayer.answered = True
-        else:
-            prayer.answered = False
-
-        # Update the sharing
-        if request.form['sharable'] == "shared":
-            prayer.sharable = True
-        else:
-            prayer.sharable = False
-
-
-        # Commit changes to the database
-        db.session.commit()
-
-        flash('Prayer updated successfully', 'success')
-        return redirect(prev_url)
-    
-    # Render the edit prayer form
-    return render_template('edit_prayer.html', prayer=prayer, categories=prayer_categories, days_of_week=days_of_week)
 
 @app.route('/prayers')
 @login_required
@@ -319,9 +259,7 @@ def view_prayers():
     # Retrieve all user's prayers
     user_id = current_user.id
     user_prayers_query = Prayer.query.filter_by(user_id=user_id)
-
-
-
+    logging.info('Retrieving user\'s tags.')
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
@@ -335,10 +273,12 @@ def view_prayers():
 def mark_answered(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    print('Found prayer')
+    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
         flash("You cannot edit another user's prayer.", "error")
+        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         return redirect('view_prayers')
     
     # Mark the prayer as answered
@@ -349,6 +289,7 @@ def mark_answered(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
+    logging.info(f'Prayer marked as prayed.')
 
     return redirect(url_for('view_prayers'))
 
@@ -358,9 +299,11 @@ def mark_answered(prayer_id):
 def mark_pending(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
+    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
 
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
+        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         flash("You cannot edit another user's prayer.", "error")
         return redirect('view_prayers')
 
@@ -369,6 +312,7 @@ def mark_pending(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
+    logging.info(f'Prayer marked as pending.')
 
     return redirect(url_for('view_prayers'))
 
@@ -378,9 +322,11 @@ def mark_pending(prayer_id):
 def mark_archived(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
+    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
 
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
+        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         flash("You cannot edit another user's prayer.", "error")
         return redirect('view_prayers')
     
@@ -389,6 +335,7 @@ def mark_archived(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
+    logging.info(f'Prayer marked as archived.')
 
     return redirect(url_for('view_prayers'))
 
@@ -398,15 +345,15 @@ def mark_archived(prayer_id):
 def mark_prayed(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    print('Found prayer: ' + str(prayer.title) + ".")
+    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
     
     # Mark the prayer as prayed
     prayer_history = PrayerHistory(prayer_id=prayer.id, user_id=current_user.id)
 
-    print("Created new prayer_history: " + str(prayer_history.id) + ".")
-
+    # Commit the changes to the database
     db.session.add(prayer_history)
     db.session.commit()
+    logging.info(f'Prayer marked as prayed.')
 
     return redirect(url_for('home'))
 
@@ -415,16 +362,18 @@ def mark_prayed(prayer_id):
 @login_required
 def delete_prayer(prayer_id):
     prayer = Prayer.query.get_or_404(prayer_id)
+    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
     
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
         flash("You cannot edit another user's prayer.", "error")
+        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         return redirect('view_prayers')
     
     db.session.delete(prayer)
     db.session.commit()
-
-    flash('Item deleted.')
+    logging.info('Prayer successfully deleted.')
+    flash('Prayer deleted.')
 
     return redirect(url_for('home'))
 
@@ -434,34 +383,37 @@ def index():
         return redirect(url_for('home'))
     
     # Render your login page template
-    return render_template('login.html')
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    if request.method == 'POST':
+    form = LoginForm()
 
-        email = request.form.get('email')
-        password = request.form.get('password')
+    if form.validate_on_submit():
+
+        email = form.email.data
+        password = form.password.data
 
         # Check if the email exists in the database
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
-            print('login success')
-
+            flash('Login successful!', 'success')
+            logging.info('Login successful.')
             return redirect(url_for('home'))
         else:
             # Authentication failed
             flash('Invalid email or password', 'error')
-            print('fail')
+            logging.warning('Login unsuccessful.')
     
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
+    logging.info('User logged out.')
     return redirect(url_for('index'))
 
 
@@ -505,7 +457,6 @@ def account_settings():
 def update_account():
     if request.method == ['POST']:
 
-
         return redirect(url_for('account_settings'))
 
 @app.route('/home', methods=['GET'])
@@ -534,13 +485,13 @@ def home():
 
     # Construct the attribute name dynamically using the dictionary
     attribute_name = day_attributes.get(today)
-    print(getattr(Prayer, attribute_name))
+
     # Set the query
     all_prayers_query = Prayer.query.distinct() \
         .join(User, Prayer.user_id == User.id) \
         .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
         .filter(and_(or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), getattr(Prayer, attribute_name).is_(True),
-            or_(User.id == current_user.id, and_(Prayer.sharable == True, User.id != current_user.id)))) \
+            or_(User.id == current_user.id, and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)))) \
         .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
 
     # Get the user's timezone
@@ -567,32 +518,35 @@ def home():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if request.method == 'POST':
-        firstname = request.form.get('firstname').strip()
-        lastname = request.form.get('lastname').strip()
-        email = request.form.get('email').strip()
-        password1 = request.form.get('password1')
-        password2 = request.form.get('password2')
+
+    form = AccountSettingsForm(timezone='America/Chicago',thankfulness_length=7)
+
+
+    if form.validate_on_submit():
+        firstname = form.firstname.data.strip()
+        lastname = form.lastname.data.strip()
+        email = form.email.data.strip()
+        password1 = form.password1.data
         
         # Check if the email already exists in the database
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             # Email already exists, handle accordingly
-            return render_template('signup.html', error='Email already exists')
-
-        if password1 != password2:
-            return render_template('signup.html', error='Passwords do not match')
+            return render_template('signup.html', form=form)
 
         # Has the password before storing it in the database
         hashed_password = bcrypt.hashpw(password1.encode('utf-8'), bcrypt.gensalt())
 
-        new_user = User(firstname=firstname,lastname=lastname, email=email,password=hashed_password)
+        new_user = User(firstname=firstname,lastname=lastname, email=email,password=hashed_password, timezone=form.timezone.data, 
+                        thankfulness_length = form.thankfulness_length.data)
         db.session.add(new_user)
         db.session.commit()
-        flash('Sign-up successful! Please log in.', 'success')
-        return redirect(url_for('login'))
+        flash('Sign-up successful!', 'success')
+        login_user(new_user)
+
+        return redirect(url_for('home'))
     
-    return render_template('signup.html')
+    return render_template('signup.html', form=form)
 
 @app.route('/friends', methods=['POST','GET'])
 @login_required
