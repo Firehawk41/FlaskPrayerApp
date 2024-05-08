@@ -1,9 +1,32 @@
+<!-- account_settings.html -->
+
 {% extends 'base.html' %}
 
 {% block title %}Account Settings{% endblock %}
 
 {% block content %}
     <h1>Account Settings</h1>
-    <p>Account Settings are coming soon!</p>
-
+    {% if form.errors %}
+        {{ form.errors }}
+    {% endif %}
+    <form method="POST" action="{{ url_for('account_settings') }}">
+        {{ form.csrf_token }}  <!-- Include CSRF token -->
+        <div class="form-group">
+            {{ form.firstname.label }} {{ form.firstname(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.lastname.label }} {{ form.lastname(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.email.label }} {{ form.email(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.timezone.label }} {{ form.timezone(class="form-control") }}
+        </div>
+        <br>
+        <div class="form-group">
+            {{ form.thankfulness_length.label }} {{ form.thankfulness_length(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-primary">Update Account Settings</button>
+    </form>
 {% endblock %}

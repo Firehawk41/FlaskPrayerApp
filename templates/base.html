@@ -6,7 +6,10 @@
     <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
+
 <body>
+
+
 
     <div class="navbar">
         <div class="navbar-brand">Christian Reflections - A Prayer App</div>
@@ -16,7 +19,10 @@
                 <li><a href="{{ url_for('index') }}">Home</a></li>
                 
                 {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('view_prayers') }}">Prayers</a></li>
+                    <li><a href="{{ url_for('add_or_edit_prayer', prayer_id=0) }}">Add Prayer</a></li>
+                    <li><a href="{{ url_for('view_prayers') }}">View My Prayers</a></li>
+                    <li><a href="{{ url_for('friends_prayers') }}">View Friends' Prayers</a></li>
+                    <li><a href="{{ url_for('friends') }}">Friends</a></li>
                     <li><a href="{{ url_for('account_settings') }}">Account Settings</a></li>
                 {% endif %}
             </ul>
@@ -35,11 +41,24 @@
         </div>
     </div>
     
+    <!-- Flask messages section -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
 
     <div class="content">
 
+
+
         {% block content %}
+
         {% endblock %}
 
 

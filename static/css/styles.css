@@ -7,6 +7,20 @@
     background-color: #f9f9f9;
 }
 
+.flash-messages {
+    position:relative;
+    margin-left: 220px;
+    text-align: left;
+    margin-top: 10px;
+    padding: 20px;
+
+}
+
+.flash-message {
+    text-align: left;
+}
+
+
 label, input {
     display: block;
     margin-bottom: 10px;
@@ -29,7 +43,10 @@ input[type="submit"]:hover {
     position: relative;
 }
 
-
+.checkbox-inline {
+    display: inline-block;
+    margin-right: 10px;
+}
 .prayer-table {
     width:100%;
     border-collapse: collapse;

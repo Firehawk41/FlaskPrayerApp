@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if edit_mode %}
+        Edit Prayer
+    {% else %}
+        Add New Prayer
+    {% endif %}        
+{% endblock %}
+
+{% block content %}
+    {% if form.errors %}
+        {{ form.errors }}
+    {% endif %}
+    <h1>{% if edit_mode %}Edit Prayer{% else %}Add New Prayer{% endif %}</h1>
+    <form method="POST" action="{{ url_for('add_or_edit_prayer', prayer_id=prayer.id if edit_mode else 0) }}">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.title.label }}
+            {{ form.title(class="form-control") }}
+        </div>
+        <br>
+        <div class="form-group">
+            {{ form.description.label }}
+            {{ form.description(class="form-control") }}
+        </div>
+        <br>
+        <div class="form-group">
+            <label>Reminder Days:</label>
+            <div class="checkbox-inline">
+                {{ form.sunday.label }} {{ form.sunday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.monday.label }} {{ form.monday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.tuesday.label }} {{ form.tuesday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.wednesday.label }} {{ form.wednesday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.thursday.label }} {{ form.thursday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.friday.label }} {{ form.friday() }}
+            </div>
+            <div class="checkbox-inline">
+                {{ form.saturday.label }} {{ form.saturday() }}
+            </div>
+        </div>
+        <br>
+        <div class="form-group">
+            {{ form.tag.label }}
+            {{ form.tag(class="form-control") }}
+        </div>  
+        <br>
+        <div class="form-group">
+            {{ form.sharable.label }}
+            {{ form.sharable(class="form-control") }}
+        </div>
+        <br>
+        <br>
+        <button type="submit" class="btn btn-primary" value="Submit">
+            {% if edit_mode %}
+                Save Changes
+            {% else %}
+                Add Prayer
+            {% endif %}
+        </button>
+        {% if edit_mode %}
+            {% set cancelUrl = url_for('view_prayers') %}
+            <button type="button" onclick="window.location.href='{{ cancelUrl }}';" class="btn btn-secondary mr-2">Cancel</button>
+        {% endif %}
+        
+        
+    </form>
+
+{% endblock %}

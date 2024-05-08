@@ -4,39 +4,33 @@
 
 {% block content %}
     <h1>Sign Up</h1>
-    {% if error %}
-        <p class="error">{{ error }}</p>
+    {% if form.errors %}
+        {{ form.errors }}
     {% endif %}
-    <form action="/signup" class="web-form" method="post" onsubmit="validatePassword()">
-        <label for="firstname">First Name:</label>
-        <input type="text" id="firstname" name="firstname" required><br>
-
-        <label for="lastname">Last Name:</label>
-        <input type="text" id="lastname" name="lastname" required><br>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required><br>
-
-        <label for="password1">Password:</label>
-        <input type="password" id="password1" name="password1" required><br>
-
-        <label for="password2">Confirm Password:</label>
-        <input type="password" id="password2" name="password2" required oninput="validatePassword()"><br>
-
-        <input type="submit" value="Sign Up">
+    <form method="post" action="{{ url_for('signup') }}">
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.firstname.label }} {{ form.firstname(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.lastname.label }} {{ form.lastname(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.email.label }} {{ form.email(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.password1.label }} {{ form.password1(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.password2.label }} {{ form.password2(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.timezone.label }} {{ form.timezone(class="form-control") }}
+        </div>
+        <br>
+        <div class="form-group">
+            {{ form.thankfulness_length.label }} {{ form.thankfulness_length(class="form-control") }}
+        </div>
+        <button type="submit" class="btn btn-primary">Sign Up</button>
     </form>
-{% endblock %}
-
-{% block scripts %}
-    <script>
-        function validatePassword() {
-            var password1 = document.getElementById("password1").value;
-            var password2 = document.getElementById("password2").value;
-            if (password1 !== password2) {
-                document.getElementById("password2").setCustomValidity("Passwords do not match");
-            } else {
-                document.getElementById("password2").setCustomValidity("");
-            }
-        }
-    </script>
-{% endblock %}
+    {% endblock %}
