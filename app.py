@@ -25,12 +25,13 @@ login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
 # Configure logging
-logging.basicConfig(filename='app.log',level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+app.logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-logging.getLogger().addHandler(console_handler)
+file_handler.setFormatter(formatter)
+app.logger.addHandler(file_handler)
+
 
 # Get current UTC time
 current_utc_time = datetime.now(dt_timezone.utc)
@@ -176,7 +177,7 @@ def add_or_edit_prayer(prayer_id=0):
     # Check if editing an existing prayer or adding a new one
     if prayer_id != 0:
         # Retrieve the prayer from the database
-        logging.info(f'Retrieving prayer to edit. Prayer ID: {prayer_id}')
+        app.logger.info(f'Retrieving prayer to edit. Prayer ID: {prayer_id}')
         prayer = Prayer.query.get_or_404(prayer_id)
         tag_name = prayer.tag.name
         form = AddPrayerForm(obj=prayer)
@@ -188,12 +189,12 @@ def add_or_edit_prayer(prayer_id=0):
         # Prevent users from editing others' prayers
         if prayer.user.id != current_user.id:
             flash("You cannot edit another user's prayer.", "error")
-            logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+            app.logger.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
             return redirect(home)
     else:
         prayer = None
         form = AddPrayerForm()
-        logging.info('Adding new prayer.')
+        app.logger.info('Adding new prayer.')
 
         # Set all reminder_days as selected by default
         for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
@@ -209,7 +210,7 @@ def add_or_edit_prayer(prayer_id=0):
 
         # Create or update the prayer object
         if prayer_id != 0:
-            logging.info(f'Editing existing prayer. Prayer ID: {prayer_id}')
+            app.logger.info(f'Editing existing prayer. Prayer ID: {prayer_id}')
             prayer.title = title
             prayer.description = description
             prayer.tag_id = tag_id
@@ -217,7 +218,7 @@ def add_or_edit_prayer(prayer_id=0):
             for field_name in ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']:
                 setattr(prayer, field_name, getattr(form, field_name).data)
         else:
-            logging.info('Creating new prayer.')
+            app.logger.info('Creating new prayer.')
             prayer = Prayer(user_id=current_user.id, title=title, description=description, tag_id=tag_id, 
                             sunday=form.sunday.data, monday=form.monday.data, tuesday=form.tuesday.data, 
                             wednesday=form.wednesday.data, thursday=form.thursday.data, friday=form.friday.data, 
@@ -227,11 +228,11 @@ def add_or_edit_prayer(prayer_id=0):
         # Commit changes to the database
         try:
             db.session.commit()
-            logging.info('Prayer saved successfully.')
+            app.logger.info('Prayer saved successfully.')
             flash('Prayer added successfully.' if prayer_id == 0 else 'Prayer edited successfully.', 'success')
             return redirect(url_for('home'))
         except Exception as e:
-            logging.error(f'Failed to save prayer. Error: {str(e)}')
+            app.logger.error(f'Failed to save prayer. Error: {str(e)}')
             flash('An error occurred while saving the prayer.  Please try again later.', 'error')
 
     return render_template('add_or_edit_prayer.html', form=form, edit_mode=bool(prayer_id!=0), prayer=prayer)
@@ -242,14 +243,14 @@ def get_or_create_tag_id(tag_name):
     existing_tag = Tag.query.filter_by(name=tag_name).first()
     if not existing_tag:
         # If the tag doesn't exist, create a new one
-        logging.info(f'Creating new tag: {tag_name}')
+        app.logger.info(f'Creating new tag: {tag_name}')
         new_tag = Tag(name=tag_name)
         db.session.add(new_tag)
         db.session.commit()
-        logging.info('Tag added successfully.')
+        app.logger.info('Tag added successfully.')
         return new_tag.id
     else:
-        logging.info(f'Getting tag: {tag_name}')
+        app.logger.info(f'Getting tag: {tag_name}')
         return existing_tag.id
 
 @app.route('/prayers')
@@ -259,7 +260,7 @@ def view_prayers():
     # Retrieve all user's prayers
     user_id = current_user.id
     user_prayers_query = Prayer.query.filter_by(user_id=user_id)
-    logging.info('Retrieving user\'s tags.')
+    app.logger.info('Retrieving user\'s tags.')
 
     # Paginate prayers
     page = request.args.get('page', 1, type=int)
@@ -273,12 +274,12 @@ def view_prayers():
 def mark_answered(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+    app.logger.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
 
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
         flash("You cannot edit another user's prayer.", "error")
-        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+        app.logger.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         return redirect('view_prayers')
     
     # Mark the prayer as answered
@@ -289,7 +290,7 @@ def mark_answered(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
-    logging.info(f'Prayer marked as prayed.')
+    app.logger.info(f'Prayer marked as prayed.')
 
     return redirect(url_for('view_prayers'))
 
@@ -299,11 +300,11 @@ def mark_answered(prayer_id):
 def mark_pending(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+    app.logger.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
 
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
-        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+        app.logger.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         flash("You cannot edit another user's prayer.", "error")
         return redirect('view_prayers')
 
@@ -312,7 +313,7 @@ def mark_pending(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
-    logging.info(f'Prayer marked as pending.')
+    app.logger.info(f'Prayer marked as pending.')
 
     return redirect(url_for('view_prayers'))
 
@@ -322,11 +323,11 @@ def mark_pending(prayer_id):
 def mark_archived(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+    app.logger.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
 
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
-        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+        app.logger.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         flash("You cannot edit another user's prayer.", "error")
         return redirect('view_prayers')
     
@@ -335,7 +336,7 @@ def mark_archived(prayer_id):
 
     # Commit the changes to the database
     db.session.commit()
-    logging.info(f'Prayer marked as archived.')
+    app.logger.info(f'Prayer marked as archived.')
 
     return redirect(url_for('view_prayers'))
 
@@ -345,7 +346,7 @@ def mark_archived(prayer_id):
 def mark_prayed(prayer_id):
     # Get the prayer from the database
     prayer = Prayer.query.get_or_404(prayer_id)
-    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+    app.logger.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
     
     # Mark the prayer as prayed
     prayer_history = PrayerHistory(prayer_id=prayer.id, user_id=current_user.id)
@@ -353,7 +354,7 @@ def mark_prayed(prayer_id):
     # Commit the changes to the database
     db.session.add(prayer_history)
     db.session.commit()
-    logging.info(f'Prayer marked as prayed.')
+    app.logger.info(f'Prayer marked as prayed.')
 
     return redirect(url_for('home'))
 
@@ -362,17 +363,17 @@ def mark_prayed(prayer_id):
 @login_required
 def delete_prayer(prayer_id):
     prayer = Prayer.query.get_or_404(prayer_id)
-    logging.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
+    app.logger.info(f'Retrieved prayer from database. Prayer ID: {prayer_id}.')
     
     # Prevent editing of other users' prayers
     if prayer.user.id != current_user.id:
         flash("You cannot edit another user's prayer.", "error")
-        logging.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
+        app.logger.warning(f'Attempted to edit another user\'s prayer. User ID: {current_user.id}, Prayer ID: {prayer_id}')
         return redirect('view_prayers')
     
     db.session.delete(prayer)
     db.session.commit()
-    logging.info('Prayer successfully deleted.')
+    app.logger.info('Prayer successfully deleted.')
     flash('Prayer deleted.')
 
     return redirect(url_for('home'))
@@ -399,12 +400,12 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             flash('Login successful!', 'success')
-            logging.info('Login successful.')
+            app.logger.info('Login successful.')
             return redirect(url_for('home'))
         else:
             # Authentication failed
             flash('Invalid email or password', 'error')
-            logging.warning('Login unsuccessful.')
+            app.logger.warning('Login unsuccessful.')
     
     return render_template('login.html', form=form)
 
@@ -413,7 +414,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    logging.info('User logged out.')
+    app.logger.info('User logged out.')
     return redirect(url_for('index'))
 
 
@@ -444,6 +445,7 @@ def account_settings():
 
         # Flash success message
         flash('Account settings updated successfully.', 'success')
+        app.logger.info(f'Successfully updated settings for user ID: {current_user.id}.')
 
         # Redirect back to the account settings page
         return redirect(url_for('account_settings'))
@@ -486,6 +488,9 @@ def home():
     # Construct the attribute name dynamically using the dictionary
     attribute_name = day_attributes.get(today)
 
+    app.logger.debug("Constructing query with parameters: {}, {}".format(attribute_name, seven_days_ago))
+
+
     # Set the query
     all_prayers_query = Prayer.query.distinct() \
         .join(User, Prayer.user_id == User.id) \
@@ -493,6 +498,8 @@ def home():
         .filter(and_(or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), getattr(Prayer, attribute_name).is_(True),
             or_(User.id == current_user.id, and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)))) \
         .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
+
+    app.logger.debug("Fetched {} prayers from the database".format(len(prayed_today_prayers)))
 
     # Get the user's timezone
     user_timezone = timezone(current_user.timezone)
@@ -532,6 +539,8 @@ def signup():
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             # Email already exists, handle accordingly
+            flash('An account already exists with this email address.', 'error')
+            app.logger.info("User attempted to create account with email already in the database.")
             return render_template('signup.html', form=form)
 
         # Has the password before storing it in the database
@@ -542,6 +551,7 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
         flash('Sign-up successful!', 'success')
+        app.logger.info(f"User created successfully. User ID: {new_user.id}.")
         login_user(new_user)
 
         return redirect(url_for('home'))
@@ -559,15 +569,18 @@ def friends():
         if not existing_user:
             # if the user doesn't exist, handle accordingly
             flash('This account does not exist.', 'error')
+            app.logger.info("User {} attempted to add a friend that doesn't exist.".format(current_user.id))
             return redirect(url_for('friends'))
         
         if existing_user == current_user:
             flash('You cannot send a friend request to yourself.', 'error')
+            app.logger.info("User {} attempted to add him or herself as a friend.".format(current_user.id))
             return redirect(url_for('friends'))
         
         friendship_exists = FriendRequest.are_friends(current_user.id, existing_user.id)
         if friendship_exists:
             flash('You are already friends with this user.', 'error')
+            app.logger.info("User {} attempted to add user {} as a friend but they already were friends.".format(current_user.id,existing_user.id))
             return redirect(url_for('friends'))
 
         friend_request = FriendRequest(sender_id=current_user.id, receiver_id=existing_user.id)
@@ -576,6 +589,7 @@ def friends():
         db.session.commit()
 
         flash('Friend request sent successfully.', 'success')
+        app.logger.info("User {} successfully sent a friend request to {}.".format(current_user.id,existing_user.id))
         return redirect(url_for('friends'))
     
     friend_list = FriendRequest.query.filter_by(sender_id=current_user.id, status='Accepted').all()
@@ -609,7 +623,7 @@ def accept_friend_request(request_id):
 
     # Commit the changes to the database
     db.session.commit()
-
+    app.logger.info("User {} accepted a friend request from {}.".format(receiver_id,sender_id))
     return redirect(url_for('friends'))
 
 @app.route('/decline_friend_request/<int:request_id>', methods=['POST'])
@@ -624,7 +638,7 @@ def decline_friend_request(request_id):
 
     # Commit the changes to the database
     db.session.commit()
-
+    app.logger.info("User {} declined a friend request from {}.".format(request.receiver_id,request.sender_id))
     return redirect(url_for('friends'))
 
 @app.route('/cancel_or_unfriend/<int:request_id>', methods=['POST'])
@@ -639,7 +653,7 @@ def cancel_or_unfriend(request_id):
 
     # Commit the changes to the database
     db.session.commit()
-
+    app.logger.info("User {} deleted a friend request to {}.".format(request.receiver_id,request.sender_id))
     return redirect(url_for('friends'))
 
 @app.route('/friends_prayers',methods=['POST', 'GET'])
