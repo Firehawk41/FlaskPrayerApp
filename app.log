@@ -62,3 +62,12 @@
 2024-05-07 10:27:09,950 - INFO - 127.0.0.1 - - [07/May/2024 10:27:09] "GET /home HTTP/1.1" 200 -
 2024-05-07 10:27:09,961 - INFO - 127.0.0.1 - - [07/May/2024 10:27:09] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
 2024-05-21 09:05:14,063 - INFO - Login successful.
+2024-05-21 09:09:13,337 - INFO - Adding new prayer.
+2024-05-21 09:09:15,537 - INFO - Retrieving user's tags.
+2024-05-21 09:09:21,112 - INFO - Retrieving prayer to edit. Prayer ID: 2
+2024-05-21 09:09:35,305 - INFO - Adding new prayer.
+2024-05-21 09:09:37,096 - INFO - Retrieving user's tags.
+2024-05-21 09:09:38,704 - INFO - Retrieving prayer to edit. Prayer ID: 2
+2024-05-21 09:09:40,390 - INFO - Retrieving user's tags.
+2024-05-21 09:09:53,762 - INFO - Retrieved prayer from database. Prayer ID: 2.
+2024-05-21 09:09:53,770 - INFO - Prayer marked as prayed.
