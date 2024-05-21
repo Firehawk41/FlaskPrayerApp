@@ -499,7 +499,7 @@ def home():
             or_(User.id == current_user.id, and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)))) \
         .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
 
-    app.logger.debug("Fetched {} prayers from the database".format(len(prayed_today_prayers)))
+    app.logger.debug("Fetched {} prayers from the database".format(all_prayers_query.count()))
 
     # Get the user's timezone
     user_timezone = timezone(current_user.timezone)
