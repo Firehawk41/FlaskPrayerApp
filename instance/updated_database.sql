@@ -1,61 +1,101 @@
+BEGIN TRANSACTION;
+
+
 CREATE TABLE "user" (
-    id SERIAL PRIMARY KEY,
-    firstname VARCHAR(100) NOT NULL,
-    lastname VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(128) NOT NULL
+	"id" SERIAL PRIMARY KEY,
+	"firstname" VARCHAR(100) NOT NULL,
+	"lastname" VARCHAR(100) NOT NULL,
+	"email" VARCHAR(100) NOT NULL UNIQUE,
+	"password" VARCHAR(128) NOT NULL,
+	"timezone" VARCHAR(64) NOT NULL DEFAULT 'America/Chicago',
+	"thankfulness_length" INTEGER NOT NULL DEFAULT 7
 );
+
+INSERT INTO "user" VALUES(1, 'Jamie', 'Thomson', 'jamiemrt@gmail.com', '\x243262243132245a4b59493157356163666a49725479667a72464c5a4f334343376f6934684e75535451726347446c6c74364e4f6f476e67574e4653', 'America/Chicago', 7);
+INSERT INTO "user" VALUES(2, 'Rubi', 'Thomson', 'rubi.thomson@email.com', '\x243262243132244a513957497747536d4e746e374764312f64683334753177506b4d61506a466b5130635a4e7479305453423167736a4a3172667257', 'America/Chicago', 7);
+INSERT INTO "user" VALUES(3, 'Olivia', 'Thomson', 'olivia.thomson@email.com', '\x243262243132242f4c6c7630446c523966696a5330383544534438512e504f74756a62464f68427631644172564766704b667252506145626e555057', 'America/Chicago', 7);
+INSERT INTO "user" VALUES(4, 'Elizabeth', 'Thomson', 'emthomson21@gmail.com', '\x24326224313224486e7838622e322e4e4d6f6d4e4b63514b62686b784f37776a61335a394e653870554b7566594241393547724c6e5743567a676843', 'America/Chicago', 7);
 
 CREATE TABLE tag (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE
+	id SERIAL PRIMARY KEY, 
+	name VARCHAR(50) NOT NULL UNIQUE
 );
+
+INSERT INTO tag VALUES(1, 'Petition');
+INSERT INTO tag VALUES(2, 'Protection');
+INSERT INTO tag VALUES(3, 'Thanksgiving');
+INSERT INTO tag VALUES(4, 'Healing');
+INSERT INTO tag VALUES(5, 'Praise');
+INSERT INTO tag VALUES(6, 'Lament');
 
 CREATE TABLE prayer (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    title VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL,
-    answered BOOLEAN,
-    archived BOOLEAN,
-    created_at TIMESTAMP,
-    last_modified TIMESTAMP,
-    answered_at TIMESTAMP,
-    tag_id INTEGER NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES "user" (id),
-    FOREIGN KEY(tag_id) REFERENCES tag (id)
+	"id" SERIAL PRIMARY KEY,
+	"user_id" INTEGER NOT NULL,
+	"title" VARCHAR(100) NOT NULL,
+	"description" TEXT NOT NULL,
+	"answered" BOOLEAN,
+	"archived" BOOLEAN,
+	"created_at" TIMESTAMP,
+	"last_modified" TIMESTAMP,
+	"answered_at" TIMESTAMP,
+	"tag_id" INTEGER NOT NULL,
+	"sharable" BOOLEAN NOT NULL DEFAULT FALSE,
+	"sunday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"monday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"tuesday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"wednesday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"thursday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"friday" BOOLEAN NOT NULL DEFAULT TRUE,
+	"saturday" BOOLEAN NOT NULL DEFAULT TRUE,
+	FOREIGN KEY("tag_id") REFERENCES tag(id),
+	FOREIGN KEY("user_id") REFERENCES "user"(id)
 );
+
+INSERT INTO prayer VALUES(2, 1, 'Safe travels', 'Lord, please guide me safely to my destination today.', FALSE, FALSE, '2024-04-16 20:57:14.604112', '2024-05-07 14:39:09.354557', '2024-05-07 14:39:09.354557', 1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+INSERT INTO prayer VALUES(3, 1, 'Bodie''s health', 'Lord, please heal Bodie and comfort his family.', TRUE, FALSE, '2024-04-16 20:57:14.604112', '2024-04-22 17:03:07.752885', '2024-04-19 22:42:32.587796', 4, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+INSERT INTO prayer VALUES(4, 2, 'friends and toys ', 'thankyou for friends and we get to play together. and thankyou for my toys              .', FALSE, FALSE, '2024-04-19 22:42:32.587796', '2024-04-26 20:48:16.728813', NULL, 3, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+INSERT INTO prayer VALUES(5, 1, 'Megan Mosley', 'Please heal Megan and comfort her family', FALSE, FALSE, '2024-04-22 16:07:27.599042', '2024-04-22 16:07:27.599042', NULL, 1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+INSERT INTO prayer VALUES(6, 1, 'Daniel', 'Please bless Daniel', FALSE, FALSE, '2024-04-22 16:35:41.936742', '2024-05-02 15:11:49.006801', NULL, 1, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE);
+INSERT INTO prayer VALUES(7, 1, 'Jim and Esil Reiser', 'Please bless Jim and Esil', FALSE, FALSE, '2024-04-22 16:37:12.017512', '2024-04-22 16:37:12.017512', NULL, 1, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE);
+INSERT INTO prayer VALUES(8, 1, 'Lyn and Lyndon Cox', 'Please bless Lynn and Lyndon', FALSE, FALSE, '2024-04-22 17:03:07.752885', '2024-04-22 17:03:07.752885', NULL, 1, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE);
+INSERT INTO prayer VALUES(9, 1, 'Gary and Tracy Deck', 'Please bless Gary and Tracy', FALSE, FALSE, '2024-04-22 17:07:26.572938', '2024-04-22 17:07:26.572938', NULL, 1, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE);
+INSERT INTO prayer VALUES(10, 2, 'thankyou for Miss Robin', 'thankyou for Miss Robin and that she ', FALSE, FALSE, '2024-04-23 01:29:46.180302', '2024-04-24 21:10:31.468794', '2024-04-24 21:10:31.468794', 3, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+
+
+
+
+CREATE TABLE friend_request (
+	id SERIAL PRIMARY KEY, 
+	sender_id INTEGER NOT NULL, 
+	receiver_id INTEGER NOT NULL, 
+	status VARCHAR(8) NOT NULL, 
+	sent_at TIMESTAMP, 
+	updated_at TIMESTAMP, 
+	FOREIGN KEY(sender_id) REFERENCES "user" (id), 
+	FOREIGN KEY(receiver_id) REFERENCES "user" (id)
+);
+
+INSERT INTO friend_request VALUES(1, 1, 2, 'Accepted', '2024-04-23 21:52:06.772572', '2024-04-24 13:27:53.458308');
+INSERT INTO friend_request VALUES(2, 1, 3, 'Accepted', '2024-04-23 21:52:06.772572', '2024-04-24 13:27:53.458308');
+INSERT INTO friend_request VALUES(3, 2, 1, 'Accepted', '2024-04-24 13:27:53.458308', NULL);
+INSERT INTO friend_request VALUES(4, 3, 1, 'Accepted', '2024-04-24 13:27:53.458308', NULL);
 
 CREATE TABLE prayer_history (
-    id SERIAL PRIMARY KEY,
-    prayer_id INTEGER NOT NULL,
-    date_prayed TIMESTAMP,
-    FOREIGN KEY(prayer_id) REFERENCES prayer (id)
+	id SERIAL PRIMARY KEY, 
+	prayer_id INTEGER NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	date_prayed TIMESTAMP, 
+	FOREIGN KEY(prayer_id) REFERENCES prayer (id), 
+	FOREIGN KEY(user_id) REFERENCES "user" (id)
 );
 
-INSERT INTO "user" (id, firstname, lastname, email, password)
-VALUES
-(1, 'Jamie', 'Thomson', 'jamiemrt@gmail.com', '243262243132245a4b59493157356163666a49725479667a72464c5a4f334343376f6934684e75535451726347446c6c74364e4f6f476e67574e4653'),
-(2, 'Rubi', 'Thomson', 'rubi.thomson@email.com', '243262243132244a513957497747536d4e746e374764312f64683334753177506b4d61506a466b5130635a4e7479305453423167736a4a3172667257'),
-(3, 'Olivia', 'Thomson', 'olivia.thomson@email.com', '243262243132242f4c6c7630446c523966696a5330383544534438512e504f74756a62464f68427631644172564766704b667252506145626e555057');
+INSERT INTO prayer_history VALUES(1, 4, 2, '2024-04-24 20:33:49.493140');
+INSERT INTO prayer_history VALUES(2, 2, 1, '2024-04-30 15:00:19.294585');
+INSERT INTO prayer_history VALUES(3, 2, 1, '2024-05-07 14:39:09.354557');
+INSERT INTO prayer_history VALUES(4, 2, 1, '2024-05-21 14:08:59.040068');
 
-INSERT INTO tag (id, name)
-VALUES
-(1, 'Petition'),
-(2, 'Protection'),
-(3, 'Thanksgiving'),
-(4, 'Healing');
 
-INSERT INTO prayer (id, user_id, title, description, answered, archived, created_at, last_modified, answered_at, tag_id)
-VALUES
-(2, 1, 'Safe travels', 'Lord, please guide me safely to my destination today.', FALSE, FALSE, '2024-04-16 20:57:14.604112', '2024-04-18 13:23:23.964762', '2024-04-18 13:23:23.964762', 1),
-(3, 1, 'Bodie''s health', 'Lord, please heal Bodie and comfort his family.', TRUE, FALSE, '2024-04-16 20:57:14.604112', '2024-04-19 22:42:32.587796', '2024-04-19 22:42:32.587796', 4),
-(4, 2, 'friends and toys', 'thankyou for friends and we get to play together. and thankyou for my toys.', FALSE, FALSE, '2024-04-19 22:42:32.587796', '2024-04-19 22:42:32.587796', NULL, 3);
 
-INSERT INTO prayer_history (id, prayer_id, date_prayed)
-VALUES
-(2, 2, '2024-04-16 20:57:14.604112'),
-(3, 3, '2024-04-17 16:50:18.487607'),
-(4, 3, '2024-04-19 14:53:03.235701'),
-(5, 2, '2024-04-19 14:53:03.235701');
 
+
+COMMIT;

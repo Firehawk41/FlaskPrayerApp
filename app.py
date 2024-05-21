@@ -7,12 +7,14 @@ import os
 from bcrypt import checkpw
 import bcrypt
 from sqlalchemy import and_, not_, or_, case, func, text, union
+from sqlalchemy.orm import aliased, joinedload
 from flask_wtf.csrf import CSRFProtect
 from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets, PasswordField
 from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange, EqualTo
 from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
 import logging
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +23,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+print(os.environ.get('SQLALCHEMY_DATABASE_URI'))
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
@@ -490,16 +493,40 @@ def home():
 
     app.logger.debug("Constructing query with parameters: {}, {}".format(attribute_name, seven_days_ago))
 
+    # Create an alias for the user table to use in the joins
+    user_alias = aliased(User)
+    friend_request_alias = aliased(FriendRequest)
 
-    # Set the query
-    all_prayers_query = Prayer.query.distinct() \
+    # Define the query
+    all_prayers_query = db.session.query(Prayer).distinct(Prayer.id) \
         .join(User, Prayer.user_id == User.id) \
         .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
-        .filter(and_(or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), getattr(Prayer, attribute_name).is_(True),
-            or_(User.id == current_user.id, and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)))) \
-        .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
+        .filter(
+            and_(
+                or_(Prayer.answered == False, Prayer.answered_at >= seven_days_ago),
+                getattr(Prayer, attribute_name).is_(True),
+                or_(
+                    User.id == current_user.id,
+                    and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)
+                )
+            )
+        ).options(
+            joinedload(Prayer.history)  # Eager load the history relationship
+        ).order_by(
+            Prayer.id,
+            case(
+                (Prayer.user_id == current_user.id, 0),
+                else_=Prayer.user_id
+            ), Prayer.id
+        )
 
-    app.logger.debug("Fetched {} prayers from the database".format(all_prayers_query.count()))
+    # Execute the query to fetch the results
+    results = all_prayers_query.all()
+
+    # Count the number of results
+    num_prayers = len(results)
+
+    app.logger.debug("Fetched {} prayers from the database".format(num_prayers))
 
     # Get the user's timezone
     user_timezone = timezone(current_user.timezone)
@@ -509,7 +536,7 @@ def home():
 
     # Check if each prayer in the history was prayed today
     prayed_today_prayers = []
-    for prayer in all_prayers_query.all():
+    for prayer in results:
         if prayer.history:
             # Convert the timestamp in the prayer history to the user's timezone
             prayed_at_user_timezone = prayer.history[-1].date_prayed.astimezone(user_timezone).date()
@@ -673,6 +700,5 @@ def friends_prayers():
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+
     app.run(debug=True)

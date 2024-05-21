@@ -71,3 +71,14 @@
 2024-05-21 09:09:40,390 - INFO - Retrieving user's tags.
 2024-05-21 09:09:53,762 - INFO - Retrieved prayer from database. Prayer ID: 2.
 2024-05-21 09:09:53,770 - INFO - Prayer marked as prayed.
+2024-05-21 09:11:14,825 - INFO - User logged out.
+2024-05-21 10:15:20,038 - INFO - Login successful.
+2024-05-21 12:49:07,576 - INFO - Adding new prayer.
+2024-05-21 12:49:08,931 - INFO - Retrieving user's tags.
+2024-05-21 12:49:16,260 - INFO - Adding new prayer.
+2024-05-21 12:49:23,964 - INFO - Retrieving user's tags.
+2024-05-21 12:49:28,115 - INFO - Retrieving prayer to edit. Prayer ID: 2
+2024-05-21 12:49:33,603 - INFO - Retrieving prayer to edit. Prayer ID: 2
+2024-05-21 12:49:33,603 - INFO - Getting tag: Petition
+2024-05-21 12:49:33,603 - INFO - Editing existing prayer. Prayer ID: 2
+2024-05-21 12:49:33,618 - INFO - Prayer saved successfully.
