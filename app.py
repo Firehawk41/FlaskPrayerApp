@@ -23,7 +23,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
-print(os.environ.get('SQLALCHEMY_DATABASE_URI'))
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
@@ -79,7 +78,7 @@ class User(db.Model):
     firstname = db.Column(db.String(100), nullable=False)
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique = True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.LargeBinary, nullable=False)
     timezone = db.Column(db.String(64), nullable=False, default='America/Chicago')
     thankfulness_length = db.Column(db.Integer, nullable=False,default=7)
 
@@ -98,7 +97,9 @@ class User(db.Model):
         return False
     
     def check_password(self, password):
-        return bcrypt.checkpw(password.encode('utf-8'), self.password)
+        # Ensure self.password is in bytes before checking
+        hashed_password = self.password.encode('utf-8') if isinstance(self.password, str) else self.password
+        return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
 class Prayer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -492,10 +493,6 @@ def home():
     attribute_name = day_attributes.get(today)
 
     app.logger.debug("Constructing query with parameters: {}, {}".format(attribute_name, seven_days_ago))
-
-    # Create an alias for the user table to use in the joins
-    user_alias = aliased(User)
-    friend_request_alias = aliased(FriendRequest)
 
     # Define the query
     all_prayers_query = db.session.query(Prayer).distinct(Prayer.id) \

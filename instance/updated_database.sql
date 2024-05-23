@@ -6,7 +6,7 @@ CREATE TABLE "user" (
 	"firstname" VARCHAR(100) NOT NULL,
 	"lastname" VARCHAR(100) NOT NULL,
 	"email" VARCHAR(100) NOT NULL UNIQUE,
-	"password" VARCHAR(128) NOT NULL,
+	"password" BYTEA NOT NULL,
 	"timezone" VARCHAR(64) NOT NULL DEFAULT 'America/Chicago',
 	"thankfulness_length" INTEGER NOT NULL DEFAULT 7
 );
