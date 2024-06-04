@@ -14,6 +14,7 @@ from wtforms.validators import DataRequired, Email, Length, InputRequired, Numbe
 from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
 import logging
+from waitress import serve
 
 
 # Load environment variables from .env file
@@ -698,4 +699,4 @@ def friends_prayers():
 
 if __name__ == '__main__':
 
-    app.run(debug=True)
+    serve(app,host='0.0.0.0', port=5000)
