@@ -482,3 +482,147 @@ Traceback (most recent call last):
 sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "host.docker.internal" (192.168.1.94), port 5432 failed: FATAL:  no pg_hba.conf entry for host "192.168.1.94", user "postgres", database "prayer_app_database", no encryption
 
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2024-06-10 09:15:39,200 - ERROR - Exception on /login [POST]
+Traceback (most recent call last):
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3304, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\create.py", line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 617, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "host.docker.internal" (192.168.1.94), port 5432 failed: FATAL:  no pg_hba.conf entry for host "192.168.1.94", user "postgres", database "prayer_app_database", no encryption
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\flask\app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\flask\app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\flask\app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\flask\app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\app.py", line 404, in login
+    user = User.query.filter_by(email=email).first()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2728, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2827, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2181, in _execute_internal
+    conn = self._connection_for_bind(bind)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2050, in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 2, in _connection_for_bind
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 1144, in _connection_for_bind
+    conn = bind.connect()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3280, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2444, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 3304, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 1263, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 674, in __init__
+    self.__connect()
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\pool\base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\create.py", line 643, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 617, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Jamie\Documents\Coding\FlaskApp\FlaskPrayerApp\venv\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "host.docker.internal" (192.168.1.94), port 5432 failed: FATAL:  no pg_hba.conf entry for host "192.168.1.94", user "postgres", database "prayer_app_database", no encryption
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2024-06-10 09:21:09,612 - INFO - Login successful.
+2024-08-08 09:29:48,586 - INFO - Login successful.
+2024-08-08 09:30:33,933 - INFO - User logged out.
