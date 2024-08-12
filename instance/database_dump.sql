@@ -1,0 +1,151 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE tag (
+	id INTEGER NOT NULL, 
+	name VARCHAR(50) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (name)
+);
+INSERT INTO tag VALUES(1,'Petition');
+INSERT INTO tag VALUES(2,'Protection');
+INSERT INTO tag VALUES(3,'Thanksgiving');
+INSERT INTO tag VALUES(4,'Healing');
+INSERT INTO tag VALUES(5,'Praise');
+INSERT INTO tag VALUES(6,'Lament');
+CREATE TABLE friend_request (
+	id INTEGER NOT NULL, 
+	sender_id INTEGER NOT NULL, 
+	receiver_id INTEGER NOT NULL, 
+	status VARCHAR(8) NOT NULL, 
+	sent_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(sender_id) REFERENCES user (id), 
+	FOREIGN KEY(receiver_id) REFERENCES user (id)
+);
+INSERT INTO friend_request VALUES(1,1,2,'Accepted','2024-04-23 21:52:06.772572','2024-04-24 13:27:53.458308');
+INSERT INTO friend_request VALUES(2,1,3,'Accepted','2024-04-23 21:52:06.772572','2024-04-24 13:27:53.458308');
+INSERT INTO friend_request VALUES(3,2,1,'Accepted','2024-04-24 13:27:53.458308',NULL);
+INSERT INTO friend_request VALUES(4,3,1,'Accepted','2024-04-24 13:27:53.458308',NULL);
+CREATE TABLE prayer_history (
+	id INTEGER NOT NULL, 
+	prayer_id INTEGER NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	date_prayed DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(prayer_id) REFERENCES prayer (id), 
+	FOREIGN KEY(user_id) REFERENCES user (id)
+);
+INSERT INTO prayer_history VALUES(1,4,2,'2024-04-24 20:33:49.493140');
+INSERT INTO prayer_history VALUES(2,2,1,'2024-04-30 15:00:19.294585');
+INSERT INTO prayer_history VALUES(3,2,1,'2024-05-07 14:39:09.354557');
+INSERT INTO prayer_history VALUES(4,2,1,'2024-05-21 14:08:59.040068');
+CREATE TABLE IF NOT EXISTS "user" (
+	"id"	INTEGER NOT NULL,
+	"firstname"	VARCHAR(100) NOT NULL,
+	"lastname"	VARCHAR(100) NOT NULL,
+	"email"	VARCHAR(100) NOT NULL,
+	"password"	VARCHAR(128) NOT NULL,
+	"timezone"	VARCHAR(64) NOT NULL DEFAULT 'America/Chicago',
+	"thankfulness_length"	INTEGER NOT NULL DEFAULT 7,
+	UNIQUE("email"),
+	PRIMARY KEY("id")
+);
+INSERT INTO user VALUES(1,'Jamie','Thomson','jamiemrt@gmail.com',X'243262243132245a4b59493157356163666a49725479667a72464c5a4f334343376f6934684e75535451726347446c6c74364e4f6f476e67574e4653','America/Chicago',7);
+INSERT INTO user VALUES(2,'Rubi','Thomson','rubi.thomson@email.com',X'243262243132244a513957497747536d4e746e374764312f64683334753177506b4d61506a466b5130635a4e7479305453423167736a4a3172667257','America/Chicago',7);
+INSERT INTO user VALUES(3,'Olivia','Thomson','olivia.thomson@email.com',X'243262243132242f4c6c7630446c523966696a5330383544534438512e504f74756a62464f68427631644172564766704b667252506145626e555057','America/Chicago',7);
+INSERT INTO user VALUES(4,'Elizabeth','Thomson','emthomson21@gmail.com',X'24326224313224486e7838622e322e4e4d6f6d4e4b63514b62686b784f37776a61335a394e653870554b7566594241393547724c6e5743567a676843','America/Chicago',7);
+CREATE TABLE IF NOT EXISTS "prayer" (
+	"id"	INTEGER NOT NULL,
+	"user_id"	INTEGER NOT NULL,
+	"title"	VARCHAR(100) NOT NULL,
+	"description"	TEXT NOT NULL,
+	"answered"	BOOLEAN,
+	"archived"	BOOLEAN,
+	"created_at"	DATETIME,
+	"last_modified"	DATETIME,
+	"answered_at"	DATETIME,
+	"tag_id"	INTEGER NOT NULL,
+	"sharable"	BOOLEAN NOT NULL DEFAULT 0,
+	"sunday"	BOOLEAN NOT NULL DEFAULT 1,
+	"monday"	BOOLEAN NOT NULL DEFAULT 1,
+	"tuesday"	BOOLEAN NOT NULL DEFAULT 1,
+	"wednesday"	BOOLEAN NOT NULL DEFAULT 1,
+	"thursday"	BOOLEAN NOT NULL DEFAULT 1,
+	"friday"	BOOLEAN NOT NULL DEFAULT 1,
+	"saturday"	BOOLEAN NOT NULL DEFAULT 1,
+	FOREIGN KEY("tag_id") REFERENCES "tag"("id"),
+	FOREIGN KEY("user_id") REFERENCES "user"("id"),
+	PRIMARY KEY("id")
+);
+INSERT INTO prayer VALUES(2,1,'Safe travels','Lord, please guide me safely to my destination today.',0,0,'2024-04-16 20:57:14.604112','2024-05-07 14:39:09.354557','2024-05-07 14:39:09.354557',1,1,1,1,1,1,1,1,1);
+INSERT INTO prayer VALUES(3,1,'Bodie''s health','Lord, please heal Bodie and comfort his family.',1,0,'2024-04-16 20:57:14.604112','2024-04-22 17:03:07.752885','2024-04-19 22:42:32.587796',4,1,1,1,1,1,1,1,1);
+INSERT INTO prayer VALUES(4,2,'friends and toys ','thankyou for friends and we get to play together. and thankyou for my toys              .',0,0,'2024-04-19 22:42:32.587796','2024-04-26 20:48:16.728813',NULL,3,1,1,1,1,1,1,1,1);
+INSERT INTO prayer VALUES(5,1,'Megan Mosley','Please heal Megan and comfort her family',0,0,'2024-04-22 16:07:27.599042','2024-04-22 16:07:27.599042',NULL,1,1,1,1,1,1,1,1,1);
+INSERT INTO prayer VALUES(6,1,'Daniel','Please bless Daniel',0,0,'2024-04-22 16:35:41.936742','2024-05-02 15:11:49.006801',NULL,1,0,1,0,0,0,0,0,0);
+INSERT INTO prayer VALUES(7,1,'Jim and Esil Reiser','Please bless Jim and Esil',0,0,'2024-04-22 16:37:12.017512','2024-04-22 16:37:12.017512',NULL,1,0,0,1,0,0,0,0,0);
+INSERT INTO prayer VALUES(8,1,'Lyn and Lyndon Cox','Please bless Lynn and Lyndon',0,0,'2024-04-22 17:03:07.752885','2024-04-22 17:03:07.752885',NULL,1,0,0,0,1,0,0,0,0);
+INSERT INTO prayer VALUES(9,1,'Gary and Tracy Deck','Please bless Gary and Tracy',0,0,'2024-04-22 17:07:26.572938','2024-04-22 17:07:26.572938',NULL,1,1,0,0,0,1,0,0,0);
+INSERT INTO prayer VALUES(10,2,'thankyou for Miss Robin','thankyou for Miss Robin and that she ',0,0,'2024-04-23 01:29:46.180302','2024-04-24 21:10:31.468794','2024-04-24 21:10:31.468794',3,0,1,1,1,1,1,1,1);
+COMMIT;
+friend_request  prayer          prayer_history  tag             user          
+CREATE TABLE tag (
+	id INTEGER NOT NULL, 
+	name VARCHAR(50) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (name)
+);
+CREATE TABLE friend_request (
+	id INTEGER NOT NULL, 
+	sender_id INTEGER NOT NULL, 
+	receiver_id INTEGER NOT NULL, 
+	status VARCHAR(8) NOT NULL, 
+	sent_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(sender_id) REFERENCES user (id), 
+	FOREIGN KEY(receiver_id) REFERENCES user (id)
+);
+CREATE TABLE prayer_history (
+	id INTEGER NOT NULL, 
+	prayer_id INTEGER NOT NULL, 
+	user_id INTEGER NOT NULL, 
+	date_prayed DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(prayer_id) REFERENCES prayer (id), 
+	FOREIGN KEY(user_id) REFERENCES user (id)
+);
+CREATE TABLE IF NOT EXISTS "user" (
+	"id"	INTEGER NOT NULL,
+	"firstname"	VARCHAR(100) NOT NULL,
+	"lastname"	VARCHAR(100) NOT NULL,
+	"email"	VARCHAR(100) NOT NULL,
+	"password"	VARCHAR(128) NOT NULL,
+	"timezone"	VARCHAR(64) NOT NULL DEFAULT 'America/Chicago',
+	"thankfulness_length"	INTEGER NOT NULL DEFAULT 7,
+	UNIQUE("email"),
+	PRIMARY KEY("id")
+);
+CREATE TABLE IF NOT EXISTS "prayer" (
+	"id"	INTEGER NOT NULL,
+	"user_id"	INTEGER NOT NULL,
+	"title"	VARCHAR(100) NOT NULL,
+	"description"	TEXT NOT NULL,
+	"answered"	BOOLEAN,
+	"archived"	BOOLEAN,
+	"created_at"	DATETIME,
+	"last_modified"	DATETIME,
+	"answered_at"	DATETIME,
+	"tag_id"	INTEGER NOT NULL,
+	"sharable"	BOOLEAN NOT NULL DEFAULT 0,
+	"sunday"	BOOLEAN NOT NULL DEFAULT 1,
+	"monday"	BOOLEAN NOT NULL DEFAULT 1,
+	"tuesday"	BOOLEAN NOT NULL DEFAULT 1,
+	"wednesday"	BOOLEAN NOT NULL DEFAULT 1,
+	"thursday"	BOOLEAN NOT NULL DEFAULT 1,
+	"friday"	BOOLEAN NOT NULL DEFAULT 1,
+	"saturday"	BOOLEAN NOT NULL DEFAULT 1,
+	FOREIGN KEY("tag_id") REFERENCES "tag"("id"),
+	FOREIGN KEY("user_id") REFERENCES "user"("id"),
+	PRIMARY KEY("id")
+);

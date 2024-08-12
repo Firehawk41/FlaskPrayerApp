@@ -7,12 +7,15 @@ import os
 from bcrypt import checkpw
 import bcrypt
 from sqlalchemy import and_, not_, or_, case, func, text, union
+from sqlalchemy.orm import aliased, joinedload
 from flask_wtf.csrf import CSRFProtect
 from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets, PasswordField
 from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange, EqualTo
 from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
 import logging
+from waitress import serve
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -76,7 +79,7 @@ class User(db.Model):
     firstname = db.Column(db.String(100), nullable=False)
     lastname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique = True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.LargeBinary, nullable=False)
     timezone = db.Column(db.String(64), nullable=False, default='America/Chicago')
     thankfulness_length = db.Column(db.Integer, nullable=False,default=7)
 
@@ -95,7 +98,9 @@ class User(db.Model):
         return False
     
     def check_password(self, password):
-        return bcrypt.checkpw(password.encode('utf-8'), self.password)
+        # Ensure self.password is in bytes before checking
+        hashed_password = self.password.encode('utf-8') if isinstance(self.password, str) else self.password
+        return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
 class Prayer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -490,16 +495,36 @@ def home():
 
     app.logger.debug("Constructing query with parameters: {}, {}".format(attribute_name, seven_days_ago))
 
-
-    # Set the query
-    all_prayers_query = Prayer.query.distinct() \
+    # Define the query
+    all_prayers_query = db.session.query(Prayer).distinct(Prayer.id) \
         .join(User, Prayer.user_id == User.id) \
         .join(FriendRequest, and_(User.id == FriendRequest.sender_id, FriendRequest.status == 'Accepted')) \
-        .filter(and_(or_(Prayer.answered ==False, Prayer.answered_at >= seven_days_ago), getattr(Prayer, attribute_name).is_(True),
-            or_(User.id == current_user.id, and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)))) \
-        .order_by(case((Prayer.user_id == current_user.id, 0), else_= Prayer.user_id), Prayer.id)
+        .filter(
+            and_(
+                or_(Prayer.answered == False, Prayer.answered_at >= seven_days_ago),
+                getattr(Prayer, attribute_name).is_(True),
+                or_(
+                    User.id == current_user.id,
+                    and_(FriendRequest.receiver_id == current_user.id, Prayer.sharable == True)
+                )
+            )
+        ).options(
+            joinedload(Prayer.history)  # Eager load the history relationship
+        ).order_by(
+            Prayer.id,
+            case(
+                (Prayer.user_id == current_user.id, 0),
+                else_=Prayer.user_id
+            ), Prayer.id
+        )
 
-    app.logger.debug("Fetched {} prayers from the database".format(all_prayers_query.count()))
+    # Execute the query to fetch the results
+    results = all_prayers_query.all()
+
+    # Count the number of results
+    num_prayers = len(results)
+
+    app.logger.debug("Fetched {} prayers from the database".format(num_prayers))
 
     # Get the user's timezone
     user_timezone = timezone(current_user.timezone)
@@ -509,7 +534,7 @@ def home():
 
     # Check if each prayer in the history was prayed today
     prayed_today_prayers = []
-    for prayer in all_prayers_query.all():
+    for prayer in results:
         if prayer.history:
             # Convert the timestamp in the prayer history to the user's timezone
             prayed_at_user_timezone = prayer.history[-1].date_prayed.astimezone(user_timezone).date()
@@ -673,6 +698,5 @@ def friends_prayers():
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+
+    serve(app,host='0.0.0.0', port=5000)
