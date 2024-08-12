@@ -20,9 +20,6 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Install AWS CLI and EB CLI
-RUN pip install awscli awsebcli
-
 # Copy the content of the local src directory to the working directory
 COPY app.py .
 COPY templates/ ./templates/
