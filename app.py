@@ -15,7 +15,7 @@ from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
 import logging
 from waitress import serve
-
+from flask_migrate import Migrate
 
 # Load environment variables from .env file
 load_dotenv()
@@ -40,6 +40,7 @@ app.logger.addHandler(file_handler)
 current_utc_time = datetime.now(dt_timezone.utc)
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Define possible prayer tags
 prayer_categories = ["Thanksgiving", "Lament", "Praise", "Wisdom", "Intercession", "Confession" , "Petition", "Healing", "Protection", "Guidance", "Strength", "Unity", "Hope", "Mission"]
