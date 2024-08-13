@@ -1,39 +1,34 @@
-# Set base image (host OS)
+# Use the official Python 3.11.4-alpine as a base image
 FROM python:3.11.4-alpine
 
-# Install PostgreSQL development libraries
-RUN apk add --no-cache postgresql-dev gcc musl-dev
+# Set environment variables for the app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Create a user and a group with a specific ID
-RUN addgroup -S appuser && adduser -S appuser -G appuser
+# Install dependencies for PostgreSQL and other needed libraries
+RUN apk update && apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    postgresql-dev \
+    && pip install --upgrade pip
 
-# By default, listen on port 5000
-EXPOSE 5000/tcp
-
-# Set the working directory in the container
+# Create and set the working directory
 WORKDIR /app
 
-# Copy the dependencies file to the working directory
+# Copy the requirements file and install Python dependencies
 COPY requirements.txt .
-
-# Install any dependencies
-RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Copy the content of the local src directory to the working directory
-COPY app.py .
-COPY templates/ ./templates/
-COPY static/ ./static/
-COPY .env .
+# Copy the entire project into the container
+COPY . .
 
-# Set environment variables (if any)
-ENV FLASK_ENV=production
+# Ensure the instance directory is present for the database
+RUN mkdir -p /app/instance
 
-# Change ownership of the app directory to the new user
-RUN chown -R appuser:appuser /app
+# Expose the port the app runs on
+EXPOSE 5000
 
-# Change to a non-root user
-USER appuser
-
-# Specify the command to run on container start
-CMD [ "python", "./app.py" ]
+# Run the application using Gunicorn
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
