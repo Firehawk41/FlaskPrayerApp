@@ -1,5 +1,0 @@
-FROM postgres:13
-
-# Copy custom configuration files
-COPY pg_hba.conf /etc/postgresql/pg_hba.conf
-COPY postgresql.conf /etc/postgresql/postgresql.conf

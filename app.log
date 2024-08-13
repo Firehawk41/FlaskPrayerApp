@@ -1497,3 +1497,5 @@ sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not translate
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
 2024-08-12 15:16:00,985 - INFO - Retrieving user's tags.
 2024-08-12 15:16:10,777 - INFO - User logged out.
+2024-08-13 12:48:36,341 - INFO - Login successful.
+2024-08-13 12:48:37,967 - INFO - User logged out.
