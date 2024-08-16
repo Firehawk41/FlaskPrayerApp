@@ -16,6 +16,7 @@ from flask_wtf import FlaskForm
 import logging
 from waitress import serve
 from flask_migrate import Migrate
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,9 +24,11 @@ load_dotenv()
 # Access environment variables
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
+app.config['DEBUG'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Configure logging
 app.logger.setLevel(logging.INFO)
@@ -176,6 +179,11 @@ class FriendRequest(db.Model):
 def load_user(user_id):
     #return User.query.get(int(user_id))
     return db.session.get(User,int(user_id))
+
+@app.route('/health')
+def health_check():
+    return "OK", 200
+
 
 @app.route('/add_or_edit_prayer/<int:prayer_id>', methods=['GET', 'POST'])
 @login_required
