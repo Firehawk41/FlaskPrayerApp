@@ -24,6 +24,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 login_manager = LoginManager(app)
 csrf = CSRFProtect(app)
 
@@ -54,7 +56,7 @@ class AccountSettingsForm(FlaskForm):
     firstname = StringField('First Name', validators=[DataRequired(), Length(max=100)])
     lastname = StringField('Last Name', validators=[DataRequired(), Length(max=100)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=100)])
-    password1 = PasswordField('Password', validators=[DataRequired(), Length(min=3, max=20)])
+    password1 = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=20)])
     password2 = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password1', message='Passwords must match')])
     timezone = SelectField('Timezone', choices=[(tz, tz) for tz in common_timezones], validators=[Length(max=100)])
     thankfulness_length = IntegerField('Number of days to remember an answered prayer', validators=[DataRequired(), NumberRange(min=0, max=99)])
@@ -462,7 +464,7 @@ def account_settings():
 @app.route('/update_account', methods=['POST'])
 @login_required
 def update_account():
-    if request.method == ['POST']:
+    if request.method == 'POST':
 
         return redirect(url_for('account_settings'))
 
