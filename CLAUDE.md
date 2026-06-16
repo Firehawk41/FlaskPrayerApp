@@ -38,7 +38,7 @@ Flask-Login with bcrypt. `@login_required` on all protected routes. No password 
 1. **No rate limiting** on `/login` or `/signup` — brute-force possible. Fix: add `Flask-Limiter`.
 2. **Weak password minimum** — 3 characters (`app.py:57`). Raise to 8+.
 3. **Password change is broken** — `account_settings` form has password fields but the route never applies them (`app.py:427-459`). Users cannot change passwords.
-4. **No session cookie hardening** — should set `SESSION_COOKIE_SECURE=True`, `SESSION_COOKIE_HTTPONLY=True` in production config.
+4. **Session cookie hardening** — `SESSION_COOKIE_HTTPONLY=True` is always set. `SESSION_COOKIE_SECURE` is gated on `FLASK_ENV == 'production'` so local HTTP dev still works. Set `FLASK_ENV=production` in the Render environment.
 5. **`SECRET_KEY` not validated** — if env var missing, Flask uses `None` and sessions are unsigned. Add a startup assertion or fallback error.
 6. **Forwarded IPs trust `'*'`** in `gunicorn_config.py` — should restrict to your proxy's IP in a real deployment.
 
@@ -87,7 +87,7 @@ docker-compose up --build
 - [ ] `DATABASE_URL` env var set (from Render PostgreSQL add-on)
 - [ ] `flask db upgrade` run on first deploy (or as a release command)
 - [ ] Start command: `gunicorn app:app`
-- [ ] `SESSION_COOKIE_SECURE = True` added to Flask config (HTTPS enforced by Render)
+- [ ] `FLASK_ENV=production` set in Render env vars (enables `SESSION_COOKIE_SECURE`)
 - [ ] No `.env` or PEM files in the repo
 
 ## What Works Well

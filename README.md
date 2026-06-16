@@ -79,6 +79,7 @@ flask run
 |----------|----------|-------------|
 | `SECRET_KEY` | Yes | Flask session signing key. Must be a long random string in production. |
 | `DATABASE_URL` | Yes (production) | PostgreSQL connection string. Defaults to SQLite locally. |
+| `FLASK_ENV` | No | Set to `production` on Render to enable secure session cookies. Omit locally (plain HTTP). |
 | `GUNICORN_WORKERS` | No | Number of Gunicorn worker processes (default: 2). |
 | `GUNICORN_THREADS` | No | Threads per worker (default: 4). |
 
@@ -89,7 +90,7 @@ This project was built as a learning exercise. Known areas for improvement befor
 - **Rate limiting**: Login and signup routes have no brute-force protection. Adding `Flask-Limiter` would fix this.
 - **Password rules**: The minimum password length is currently set to 3 characters. Raise this to at least 8 for real users.
 - **Password reset**: There is no "forgot password" flow. Users cannot recover compromised accounts.
-- **Session cookies**: In production behind HTTPS, set `SESSION_COOKIE_SECURE = True` and `SESSION_COOKIE_HTTPONLY = True` in your Flask config.
+- **Session cookies**: `SESSION_COOKIE_HTTPONLY` is always on. `SESSION_COOKIE_SECURE` is enabled when `FLASK_ENV=production` (so it doesn't break plain-HTTP local dev). Set `FLASK_ENV=production` in your Render environment variables.
 - **CSRF**: Flask-WTF CSRF protection is enabled on all forms.
 - **Passwords at rest**: bcrypt with salt — correct.
 - **SQL injection**: SQLAlchemy ORM parameterized queries throughout — no raw SQL.
