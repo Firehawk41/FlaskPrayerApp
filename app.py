@@ -10,7 +10,7 @@ from sqlalchemy import and_, not_, or_, case, func, text, union
 from sqlalchemy.orm import aliased, joinedload
 from flask_wtf.csrf import CSRFProtect
 from wtforms import SelectField, StringField, IntegerField, SelectMultipleField, BooleanField, widgets, PasswordField
-from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange, EqualTo
+from wtforms.validators import DataRequired, Email, Length, InputRequired, NumberRange, EqualTo, Optional
 from pytz import common_timezones, timezone
 from flask_wtf import FlaskForm
 import logging
@@ -60,6 +60,16 @@ class AccountSettingsForm(FlaskForm):
     password2 = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password1', message='Passwords must match')])
     timezone = SelectField('Timezone', choices=[(tz, tz) for tz in common_timezones], validators=[Length(max=100)])
     thankfulness_length = IntegerField('Number of days to remember an answered prayer', validators=[DataRequired(), NumberRange(min=0, max=99)])
+
+class UpdateAccountForm(FlaskForm):
+    firstname = StringField('First Name', validators=[Optional(), Length(max=100)])
+    lastname = StringField('Last Name', validators=[Optional(), Length(max=100)])
+    email = StringField('Email', validators=[Optional(), Email(), Length(max=100)])
+    timezone = SelectField('Timezone', choices=[(tz, tz) for tz in common_timezones])
+    thankfulness_length = IntegerField('Days to remember an answered prayer', validators=[Optional(), NumberRange(min=0, max=99)])
+    current_password = PasswordField('Current Password', validators=[Optional()])
+    new_password = PasswordField('New Password', validators=[Optional(), Length(min=8, max=20)])
+    confirm_password = PasswordField('Confirm New Password', validators=[Optional(), EqualTo('new_password', message='New passwords must match')])
 
 class AddPrayerForm(FlaskForm):
     title = StringField('Title', validators=[InputRequired()])
@@ -425,48 +435,76 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/account_settings', methods=['POST', 'GET'])
+@app.route('/account_settings', methods=['GET'])
 @login_required
 def account_settings():
-
-    # Instantiate the form
-    form = AccountSettingsForm()
-
-    # Populate the form fields with the current user's data
-    form.firstname.data = current_user.firstname
-    form.lastname.data = current_user.lastname
-    form.email.data = current_user.email
-    form.timezone.data = current_user.timezone
-    form.thankfulness_length.data = current_user.thankfulness_length
-
-    if form.validate_on_submit():
-        # Update the current user's data with the form data
-        current_user.firstname = form.firstname.data
-        current_user.lastname = form.lastname.data
-        current_user.email = form.email.data
-        current_user.timezone = form.timezone.data
-        current_user.thankfulness_length = form.thankfulness_length.data
-
-        # Commit changes to the database
-        db.session.commit()
-
-        # Flash success message
-        flash('Account settings updated successfully.', 'success')
-        app.logger.info(f'Successfully updated settings for user ID: {current_user.id}.')
-
-        # Redirect back to the account settings page
-        return redirect(url_for('account_settings'))
-    
-    # Render the template with the form
+    form = UpdateAccountForm(
+        firstname=current_user.firstname,
+        lastname=current_user.lastname,
+        email=current_user.email,
+        timezone=current_user.timezone,
+        thankfulness_length=current_user.thankfulness_length,
+    )
     return render_template('account_settings.html', form=form)
 
 
 @app.route('/update_account', methods=['POST'])
 @login_required
 def update_account():
-    if request.method == 'POST':
+    form = UpdateAccountForm()
 
-        return redirect(url_for('account_settings'))
+    if not form.validate_on_submit():
+        return render_template('account_settings.html', form=form)
+
+    changed = False
+
+    # --- Name fields: only update if the submitted value is non-empty ---
+    if form.firstname.data and form.firstname.data.strip():
+        current_user.firstname = form.firstname.data.strip()
+        changed = True
+    if form.lastname.data and form.lastname.data.strip():
+        current_user.lastname = form.lastname.data.strip()
+        changed = True
+
+    # --- Email: only update if changed; check uniqueness first ---
+    new_email = form.email.data.strip() if form.email.data else ''
+    if new_email and new_email != current_user.email:
+        taken = User.query.filter_by(email=new_email).first()
+        if taken:
+            form.email.errors.append('That email address is already in use.')
+            return render_template('account_settings.html', form=form)
+        current_user.email = new_email
+        changed = True
+
+    # --- Timezone / thankfulness: always present in the form selects ---
+    if form.timezone.data:
+        current_user.timezone = form.timezone.data
+        changed = True
+    if form.thankfulness_length.data is not None:
+        current_user.thankfulness_length = form.thankfulness_length.data
+        changed = True
+
+    # --- Password change: require current password, then hash the new one ---
+    if form.new_password.data:
+        if not form.current_password.data:
+            form.current_password.errors.append('Enter your current password to set a new one.')
+            return render_template('account_settings.html', form=form)
+        if not current_user.check_password(form.current_password.data):
+            form.current_password.errors.append('Current password is incorrect.')
+            return render_template('account_settings.html', form=form)
+        current_user.password = bcrypt.hashpw(
+            form.new_password.data.encode('utf-8'), bcrypt.gensalt()
+        )
+        changed = True
+
+    if changed:
+        db.session.commit()
+        flash('Account updated successfully.', 'success')
+        app.logger.info(f'Updated account for user ID: {current_user.id}.')
+    else:
+        flash('No changes were made.', 'info')
+
+    return redirect(url_for('account_settings'))
 
 @app.route('/home', methods=['GET'])
 @login_required
