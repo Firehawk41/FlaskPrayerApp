@@ -36,16 +36,16 @@ Flask-Login with bcrypt. `@login_required` on all protected routes. No password 
 ### Security (address before treating as production-hardened)
 
 1. **No rate limiting** on `/login` or `/signup` — brute-force possible. Fix: add `Flask-Limiter`.
-2. **Weak password minimum** — 3 characters (`app.py:57`). Raise to 8+.
-3. **Password change is broken** — `account_settings` form has password fields but the route never applies them (`app.py:427-459`). Users cannot change passwords.
+2. **Weak password minimum** — was 3 characters, raised to 8 (`app.py:59`). ✅ Fixed.
+3. **Password change** — implemented in `update_account` route. Requires current password verification (bcrypt), hashes new password before storing, minimum 8 characters. ✅ Fixed.
 4. **Session cookie hardening** — `SESSION_COOKIE_HTTPONLY=True` is always set. `SESSION_COOKIE_SECURE` is gated on `FLASK_ENV == 'production'` so local HTTP dev still works. Set `FLASK_ENV=production` in the Render environment.
 5. **`SECRET_KEY` not validated** — if env var missing, Flask uses `None` and sessions are unsigned. Add a startup assertion or fallback error.
 6. **Forwarded IPs trust `'*'`** in `gunicorn_config.py` — should restrict to your proxy's IP in a real deployment.
 
 ### Bugs
 
-7. **Dead code in `update_account`** (`app.py:465-467`): `if request.method == ['POST']:` compares to a list — always False. Route just redirects; nothing executes.
-8. **Email uniqueness not checked on account update** — DB has a UNIQUE constraint but there's no app-level error message if a duplicate email is submitted.
+7. **`update_account` route** — fully implemented. Handles name, email, timezone, thankfulness length, and password change. All fields are optional (no-op if left blank). ✅ Fixed.
+8. **Email uniqueness on account update** — checked at the app level before saving; returns a field-level error if already taken. ✅ Fixed.
 
 ### Deployment / Config
 

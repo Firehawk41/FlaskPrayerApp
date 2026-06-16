@@ -88,8 +88,9 @@ flask run
 This project was built as a learning exercise. Known areas for improvement before treating this as a hardened production app:
 
 - **Rate limiting**: Login and signup routes have no brute-force protection. Adding `Flask-Limiter` would fix this.
-- **Password rules**: The minimum password length is currently set to 3 characters. Raise this to at least 8 for real users.
-- **Password reset**: There is no "forgot password" flow. Users cannot recover compromised accounts.
+- **Password rules**: Minimum 8 characters, enforced on signup and password change.
+- **Password change**: Supported in Account Settings. Requires the user's current password (verified with bcrypt) before a new one is accepted.
+- **Password reset**: There is no "forgot password" flow. Users who forget their password cannot self-recover.
 - **Session cookies**: `SESSION_COOKIE_HTTPONLY` is always on. `SESSION_COOKIE_SECURE` is enabled when `FLASK_ENV=production` (so it doesn't break plain-HTTP local dev). Set `FLASK_ENV=production` in your Render environment variables.
 - **CSRF**: Flask-WTF CSRF protection is enabled on all forms.
 - **Passwords at rest**: bcrypt with salt — correct.
